@@ -1,0 +1,1380 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Company Name — Private Website</title>
+  <meta name="description" content="Private corporate website." />
+  <style>
+    :root{
+      --bg:#0b1220;
+      --card:#121a2d;
+      --text:#e7eefc;
+      --muted:#a9b6d6;
+      --accent:#6aa7ff;
+      --accent2:#7cf0c1;
+      --danger:#ff6b6b;
+      --success:#7cf0c1;
+      --warning:#ffd93d;
+      --border:rgba(255,255,255,.10);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Liberation Sans", sans-serif;
+      background: radial-gradient(900px 500px at 15% 10%, rgba(106,167,255,.25), transparent 60%),
+                  radial-gradient(900px 500px at 85% 0%, rgba(124,240,193,.18), transparent 55%),
+                  var(--bg);
+      color:var(--text);
+      line-height:1.5;
+    }
+    a{color:inherit; text-decoration:none}
+    .container{max-width:1100px; margin:0 auto; padding:24px}
+
+    header{
+      position:sticky; top:0; z-index:10;
+      backdrop-filter: blur(10px);
+      background: linear-gradient(to bottom, rgba(11,18,32,.85), rgba(11,18,32,.40));
+      border-bottom:1px solid var(--border);
+    }
+    .nav{
+      display:flex; align-items:center; justify-content:space-between;
+      gap:16px; padding:12px 24px;
+      max-width:1100px; margin:0 auto;
+    }
+    .nav-left{display:flex; align-items:center; gap:12px; flex-shrink:0}
+    .nav-right{display:flex; align-items:center; gap:6px; flex-wrap:wrap}
+    .brand{display:flex; align-items:center; gap:12px; font-weight:700; letter-spacing:.2px}
+    .logo{
+      width:38px; height:38px; border-radius:12px;
+      background: linear-gradient(135deg, rgba(106,167,255,.95), rgba(124,240,193,.85));
+      box-shadow: 0 10px 30px rgba(106,167,255,.22);
+    }
+    .nav-links{display:flex; align-items:center; gap:2px}
+
+    /* --- Dropdown Menu for Document Repository --- */
+    .dropdown{position:relative; display:inline-block}
+    .dropbtn{
+      color:var(--muted); padding:8px 10px; border-radius:8px;
+      transition:all .2s; font-size:14px; white-space:nowrap;
+      background:none; border:none; cursor:pointer; font-family:inherit;
+      display:inline-flex; align-items:center; gap:6px;
+    }
+    .dropbtn:hover,.dropbtn.active{color:var(--text); background: rgba(255,255,255,.06)}
+    .dropbtn .arrow{font-size:10px; transition:transform .2s; display:inline-block}
+    .dropbtn.active .arrow{transform:rotate(180deg)}
+    .dropdown-content{
+      display:none; position:absolute; top:100%; left:0; margin-top:4px;
+      min-width:180px; z-index:100;
+      background:rgba(18,26,45,.96); border:1px solid var(--border);
+      border-radius:12px; overflow:hidden;
+      box-shadow:0 12px 40px rgba(0,0,0,.45);
+      backdrop-filter:blur(12px);
+    }
+    .dropdown-content.show{display:block}
+    .dropdown-content a{
+      display:block; padding:10px 16px; color:var(--muted);
+      font-size:13.5px; border-bottom:1px solid rgba(255,255,255,.04);
+      transition:all .15s; text-decoration:none;
+    }
+    .dropdown-content a:last-child{border-bottom:none}
+    .dropdown-content a:hover{color:var(--accent); background:rgba(106,167,255,.08); padding-left:20px}
+    .dropdown-content a .gdrive-icon{margin-right:8px; opacity:.7}
+
+    .nav-links a{color:var(--muted); padding:8px 10px; border-radius:8px; transition:all .2s; font-size:14px; white-space:nowrap}
+    .nav-links a:hover{color:var(--text); background: rgba(255,255,255,.06)}
+    .nav-links a.active-link{color:var(--accent); background: rgba(106,167,255,.12)}
+    #lock{display:none}
+    #lock.is-visible{display:inline-block}
+    .logout-btn{
+      background:#8B0000;
+      border:none;
+      color:#FFFFFF;
+      font-weight:700;
+      padding:6px 14px;
+      border-radius:6px;
+      cursor:pointer;
+      font-size:13px;
+      white-space:nowrap;
+      transition:background .2s;
+    }
+    .logout-btn:hover{background:#a00000}
+    /* User badge bar below nav */
+    .user-info-bar{
+      display:none;
+      padding:6px 24px 8px;
+      max-width:1100px;
+      margin:0 auto;
+      font-size:13px;
+      color:var(--muted);
+      border-top:1px solid rgba(255,255,255,.05);
+    }
+    .user-info-bar .highlight-approved{color:var(--accent2);font-weight:600}
+    .user-info-bar .sub-badge{font-size:11px;color:var(--muted);opacity:.7;margin-left:8px}
+
+    .hero{
+      display:grid; grid-template-columns: 1.15fr .85fr; gap:18px;
+      align-items:stretch; padding:28px 0;
+    }
+    @media (max-width: 860px){ .hero{grid-template-columns:1fr} }
+
+    .hero-card{
+      background: rgba(18,26,45,.72);
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:22px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.25);
+    }
+    h1{margin:0 0 10px; font-size:40px; line-height:1.1}
+    @media (max-width: 480px){ h1{font-size:30px} }
+    .lead{color:var(--muted); margin:0 0 18px; font-size:16px}
+
+    .buttons{display:flex; flex-wrap:wrap; gap:12px; margin-top:14px}
+    .btn{
+      display:inline-flex; align-items:center; justify-content:center; gap:10px;
+      padding:12px 14px; border-radius:12px;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.04);
+      color:var(--text);
+      font-weight:600;
+      cursor:pointer;
+    }
+    .btn:hover{background: rgba(255,255,255,.07)}
+    .btn.primary{
+      border-color: rgba(106,167,255,.45);
+      background: linear-gradient(135deg, rgba(106,167,255,.22), rgba(124,240,193,.14));
+    }
+    .btn.danger{
+      border-color: rgba(255,107,107,.45);
+      background: linear-gradient(135deg, rgba(255,107,107,.22), rgba(255,107,107,.14));
+    }
+    .btn.success{
+      border-color: rgba(124,240,193,.45);
+      background: linear-gradient(135deg, rgba(124,240,193,.22), rgba(124,240,193,.14));
+    }
+    .btn .dot{
+      width:10px; height:10px; border-radius:999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 5px rgba(106,167,255,.18);
+    }
+    .btn:disabled{opacity:0.4; cursor:not-allowed}
+
+    .grid{
+      display:grid; grid-template-columns: repeat(3, 1fr); gap:14px;
+      margin-top:16px;
+    }
+    @media (max-width: 980px){ .grid{grid-template-columns:1fr 1fr} }
+    @media (max-width: 560px){ .grid{grid-template-columns:1fr} }
+
+    .feature{
+      background: rgba(18,26,45,.62);
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:16px;
+    }
+    .feature h3{margin:0 0 8px; font-size:15px}
+    .feature p{margin:0; color:var(--muted); font-size:13.5px}
+
+    section{padding:26px 0}
+    .section-title{display:flex; align-items:flex-end; justify-content:space-between; gap:14px}
+    .section-title h2{margin:0; font-size:20px}
+    .section-title span{color:var(--muted); font-size:13.5px}
+
+    .card{
+      background: rgba(18,26,45,.62);
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:18px;
+    }
+
+    .two-col{display:grid; grid-template-columns: 1fr 1fr; gap:14px}
+    @media (max-width: 860px){ .two-col{grid-template-columns:1fr} }
+
+    .list{margin:10px 0 0; padding-left:18px; color:var(--muted)}
+    .list li{margin:6px 0}
+
+    footer{
+      margin-top:26px;
+      border-top:1px solid var(--border);
+      color:var(--muted);
+      padding:18px 0;
+      text-align:center;
+      font-size:13px;
+    }
+
+    /* --- Auth Gate --- */
+    .gate{
+      position:fixed; inset:0; z-index:999;
+      display:flex; align-items:center; justify-content:center;
+      padding:20px;
+      background: rgba(0,0,0,.55);
+    }
+    .gate-card{
+      width:min(520px, 100%);
+      background: rgba(18,26,45,.92);
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:18px;
+      box-shadow: 0 30px 100px rgba(0,0,0,.45);
+    }
+    .gate-card h2{margin:0 0 8px; font-size:18px}
+    .gate-card p{margin:0 0 14px; color:var(--muted); font-size:13.5px}
+    .row{display:flex; gap:10px; flex-wrap:wrap}
+    input[type="text"], input[type="email"], input[type="password"]{
+      flex:1; min-width:220px;
+      width:100%;
+      padding:12px 12px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.04);
+      color:var(--text);
+      outline:none;
+    }
+    input::placeholder{color: rgba(231,238,252,.55)}
+    .full-row{display:flex; flex-direction:column; gap:10px; margin-bottom:12px}
+    .gate-actions{display:flex; gap:10px; align-items:center; justify-content:flex-end; flex:1}
+    .small{font-size:12.5px; color:var(--muted)}
+    .error{color:#ffb4b4; font-size:13px; margin-top:8px; min-height:18px}
+    .success-msg{color:var(--accent2); font-size:13px; margin-top:8px; min-height:18px}
+
+    .tabs{display:flex; gap:0; margin-bottom:16px; border-bottom:1px solid var(--border)}
+    .tab{
+      padding:10px 18px;
+      cursor:pointer;
+      color:var(--muted);
+      border-bottom:2px solid transparent;
+      font-weight:600;
+      font-size:14px;
+    }
+    .tab.active{color:var(--text); border-bottom-color:var(--accent)}
+    .tab:hover{color:var(--text)}
+
+    .auth-form{display:none}
+    .auth-form.active{display:block}
+
+    .user-badge{
+      display:flex; align-items:center; gap:10px;
+      padding:4px 12px;
+      border-radius:999px;
+      background: rgba(255,255,255,.06);
+      font-size:13px;
+    }
+    .status-pending{color:var(--warning)}
+    .status-approved{color:var(--accent2)}
+    .status-rejected{color:var(--danger)}
+
+    table{width:100%; border-collapse:collapse; font-size:14px}
+    th, td{padding:12px 10px; text-align:left; border-bottom:1px solid var(--border)}
+    th{color:var(--muted); font-weight:600; font-size:13px}
+    td{color:var(--text)}
+    .admin-actions{display:flex; gap:6px}
+
+    .pending-screen{text-align:center; padding:40px 20px}
+    .pending-screen .icon{font-size:48px; margin-bottom:16px}
+
+    .spinner{display:inline-block; width:16px; height:16px; border:2px solid var(--muted); border-top-color:var(--accent); border-radius:50%; animation:spin .6s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+/* --- Interactive Member Card Styles --- */
+    .member-card{
+      background: rgba(18,26,45,.62);
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:20px;
+      text-align:center;
+      cursor:pointer;
+      transition: all .25s ease;
+      position:relative;
+      overflow:hidden;
+    }
+    .member-card:hover{
+      transform:translateY(-4px);
+      box-shadow:0 12px 40px rgba(0,0,0,.35);
+      border-color:rgba(106,167,255,.35);
+      background: rgba(18,26,45,.8);
+    }
+    .member-card:active{
+      transform:translateY(-1px);
+    }
+    .member-card .avatar{
+      font-size:40px; margin-bottom:10px;
+      display:inline-block;
+      transition:transform .3s ease;
+    }
+    .member-card:hover .avatar{
+      transform:scale(1.15);
+    }
+    .member-card .role-tag{
+      display:inline-block;
+      padding:2px 10px;
+      border-radius:999px;
+      font-size:11px;
+      font-weight:600;
+      margin-top:4px;
+    }
+    .member-card .role-executor{background:rgba(106,167,255,.2);color:var(--accent)}
+    .member-card .role-it{background:rgba(124,240,193,.2);color:var(--accent2)}
+    .member-card .role-director{background:rgba(255,217,61,.2);color:var(--warning)}
+    .member-card .role-placeholder{background:rgba(255,255,255,.06);color:var(--muted);border:1px dashed var(--border)}
+    .member-card .expand-icon{
+      position:absolute; top:12px; right:12px;
+      font-size:16px; color:var(--muted);
+      opacity:0; transition:opacity .3s ease;
+    }
+    .member-card:hover .expand-icon{opacity:1}
+    .member-card-placeholder{
+      border:1px dashed var(--border);
+      background:rgba(255,255,255,.02);
+      display:flex; align-items:center; justify-content:center;
+      min-height:120px;
+      color:var(--muted);
+      font-size:13px;
+      cursor:default;
+    }
+    .member-card-placeholder:hover{background:rgba(255,255,255,.04)}
+
+    /* --- Member Detail Modal --- */
+    .member-modal-overlay{
+      position:fixed; inset:0; z-index:2000;
+      background:rgba(0,0,0,.6);
+      display:none; align-items:center; justify-content:center;
+      padding:20px;
+      backdrop-filter:blur(4px);
+    }
+    .member-modal-overlay.active{display:flex}
+    .member-modal{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:24px;
+      max-width:420px;
+      width:100%;
+      box-shadow:0 30px 80px rgba(0,0,0,.5);
+      position:relative;
+      animation:modalIn .25s ease;
+    }
+    @keyframes modalIn{
+      from{opacity:0;transform:scale(.95) translateY(10px)}
+      to{opacity:1;transform:scale(1) translateY(0)}
+    }
+    .member-modal-close{
+      position:absolute; top:12px; right:12px;
+      background:none; border:none; color:var(--muted);
+      font-size:24px; cursor:pointer; padding:4px 8px;
+      border-radius:8px;
+    }
+    .member-modal-close:hover{background:rgba(255,255,255,.06);color:var(--text)}
+    .member-modal .avatar-big{font-size:56px;text-align:center;margin-bottom:12px}
+    .member-modal h3{margin:0 0 4px;font-size:18px}
+    .member-modal .modal-role{color:var(--accent);font-size:14px;margin:0 0 12px}
+    .member-modal .modal-desc{color:var(--muted);font-size:13.5px;line-height:1.6;margin:0}
+
+    /* --- Chat Styles --- */
+    #chat-toggle{display:none;position:fixed;bottom:20px;right:20px;z-index:1000;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#fff;font-size:24px;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.4)}
+    #chat-toggle:hover{transform:scale(1.05)}
+    #chat-area{display:none;position:fixed;bottom:20px;right:20px;z-index:1000;width:360px;max-width:calc(100vw - 40px)}
+    .chat-box{background:var(--card);border:1px solid var(--border);border-radius:18px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+    .chat-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:14px}
+    .chat-header button{background:none;border:none;color:var(--muted);cursor:pointer;font-size:22px;padding:0 4px}
+    .chat-msgs{height:300px;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px}
+    .chat-msgs .msg{padding:10px 14px;border-radius:14px;max-width:85%;font-size:13px;line-height:1.4}
+    .chat-msgs .msg.own{background:linear-gradient(135deg,rgba(106,167,255,.3),rgba(124,240,193,.2));align-self:flex-end;border-bottom-right-radius:4px}
+    .chat-msgs .msg.other{background:rgba(255,255,255,.06);align-self:flex-start;border-bottom-left-radius:4px}
+    .chat-msgs .msg .meta{font-size:11px;color:var(--muted);margin-top:4px}
+    .chat-input{display:flex;gap:8px;padding:12px;border-top:1px solid var(--border)}
+    .chat-input input{flex:1;padding:10px 14px;border-radius:24px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text);outline:none}
+    .chat-input button{width:40px;height:40px;border-radius:50%;border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center}
+  </style>
+</head>
+<body>
+
+  <!-- Auth Gate -->
+  <div id="gate" class="gate" role="dialog" aria-modal="true" aria-labelledby="gate-title">
+    <div class="gate-card">
+      <h2 id="gate-title">Private Access</h2>
+      <p id="gate-subtitle">Sign in or create an account.</p>
+
+      <div class="tabs">
+        <div class="tab active" data-tab="login" onclick="switchTab('login')">Sign In</div>
+        <div class="tab" data-tab="register" onclick="switchTab('register')">Register</div>
+      </div>
+
+      <!-- Login Form -->
+      <div id="form-login" class="auth-form active">
+        <div class="full-row">
+          <input id="login-email" type="email" autocomplete="email" placeholder="Email address" />
+          <input id="login-password" type="password" autocomplete="current-password" placeholder="Password" />
+        </div>
+        <div class="gate-actions" style="justify-content:space-between">
+        <div class="small"></div>
+          <button class="btn primary" id="login-btn" type="button"><span class="dot"></span> Sign In</button>
+        </div>
+        <div class="error" id="login-error" aria-live="polite"></div>
+      </div>
+
+      <!-- Register Form -->
+      <div id="form-register" class="auth-form">
+        <div class="full-row">
+          <input id="reg-name" type="text" autocomplete="name" placeholder="Full name" />
+          <input id="reg-email" type="email" autocomplete="email" placeholder="Email address" />
+          <input id="reg-password" type="password" autocomplete="new-password" placeholder="Password (min 6 characters)" />
+        </div>
+        <div class="gate-actions" style="justify-content:space-between">
+          <div class="small">Your account will require admin approval.</div>
+          <button class="btn primary" id="register-btn" type="button"><span class="dot"></span> Register</button>
+        </div>
+        <div class="error" id="register-error" aria-live="polite"></div>
+        <div class="success-msg" id="register-success" aria-live="polite"></div>
+      </div>
+
+      <!-- Pending Approval Screen -->
+      <div id="form-pending" class="auth-form">
+        <div class="pending-screen">
+          <div class="icon">&#9203;</div>
+          <h3>Account Pending Approval</h3>
+          <p style="color:var(--muted); font-size:14px">Your account has been submitted for review. An administrator will approve your access shortly.</p>
+          <p style="color:var(--muted); font-size:13px; margin-top:12px">
+            You'll be able to access the site once your account is approved.
+            <br><button class="btn" id="check-status-btn" type="button" style="margin-top:12px">Check Status</button>
+          </p>
+        </div>
+      </div>
+
+      <!-- Admin Panel -->
+      <div id="form-admin" class="auth-form">
+        <div class="pending-screen" style="text-align:left; padding:20px 0">
+          <h3 style="margin-bottom:12px">&#128081; Admin Panel &mdash; User Management <span id="pending-badge" style="display:none;background:var(--danger);color:#fff;font-size:11px;padding:2px 8px;border-radius:999px;vertical-align:middle"></span></h3>
+          <p style="color:var(--muted); font-size:13.5px; margin-bottom:16px">Approve or reject user registration requests.</p>
+          <div id="admin-users-list" style="overflow-x:auto">
+            <div style="text-align:center; padding:20px; color:var(--muted)"><span class="spinner"></span> Loading users...</div>
+          </div>
+          <div style="margin-top:16px">
+            <button class="btn" id="admin-logout-btn" type="button">&#128274; Lock &amp; Sign Out</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <header>
+    <div class="nav">
+      <div class="nav-left">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <div style="font-size:14px; color:var(--muted); font-weight:600; margin-bottom:2px">Company</div>
+          <div style="font-size:16px">Private Website</div>
+        </div>
+      </div>
+      <div class="nav-right">
+        <nav class="nav-links" aria-label="Primary">
+          <a href="#about">About</a>
+          <a href="#services">Services</a>
+          <a href="#team">Team</a>
+          <a href="#contact">Contact</a>
+          <div class="dropdown" id="doc-repo-dropdown">
+            <button class="dropbtn" onclick="toggleDropdown(event)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleDropdown(event)}" aria-haspopup="true" aria-expanded="false">
+              &#128196; Document Repository <span class="arrow">&#9660;</span>
+            </button>
+            <div class="dropdown-content" id="doc-repo-menu" role="menu"></div>
+          </div>
+        </nav>
+        <a href="#" id="admin-panel-btn" role="button" style="color:var(--accent); font-weight:600;display:none;padding:6px 10px;font-size:13px;white-space:nowrap">&#128081; Admin</a>
+        <button class="logout-btn" id="lock" type="button" style="display:none">&#128274; Logout</button>
+      </div>
+    </div>
+    <!-- User Info Bar (below nav) -->
+    <div class="user-info-bar" id="user-info-bar">
+      <span id="user-info-text"></span>
+    </div>
+  </header>
+
+  <main class="container" id="content" style="display:none">
+    <!-- ===== HOME PAGE ===== -->
+    <div class="page-view" id="page-home">
+      <div class="hero">
+        <div class="hero-card">
+          <h1>Trusted solutions for your next milestone.</h1>
+          <p class="lead">A private corporate site with secure navigation, clean layout, and quick content sections.</p>
+          <div class="buttons">
+            <a class="btn primary" href="#services"><span class="dot"></span>Explore services</a>
+            <a class="btn" href="#contact">Get in touch</a>
+          </div>
+          <div class="grid" style="margin-top:18px">
+            <div class="feature"><h3>Secure by design</h3><p>Server-side authentication with role-based access control.</p></div>
+            <div class="feature"><h3>Modern UI</h3><p>Responsive layout, accessible components, and a polished dark theme.</p></div>
+            <div class="feature"><h3>Easy to customize</h3><p>Update copy, images, and links without touching the structure.</p></div>
+          </div>
+        </div>
+        <div class="hero-card" style="display:flex; flex-direction:column; gap:14px">
+          <div>
+            <div style="color:var(--muted); font-weight:600; font-size:13.5px; margin-bottom:8px">Quick facts</div>
+            <div class="card" style="padding:14px">
+              <div style="display:flex; justify-content:space-between; gap:10px">
+                <div><div style="color:var(--muted); font-size:13px">Industry</div><div style="font-weight:700">[Your industry]</div></div>
+                <div><div style="color:var(--muted); font-size:13px">HQ</div><div style="font-weight:700">[City, Country]</div></div>
+              </div>
+              <div style="margin-top:12px; color:var(--muted); font-size:13.5px">Internal documents and announcements can be linked here.</div>
+            </div>
+          </div>
+          <div>
+            <div style="color:var(--muted); font-weight:600; font-size:13.5px; margin-bottom:8px">Announcements</div>
+            <div class="card" style="padding:14px">
+              <div style="font-weight:700">&bull; New policy update</div>
+              <div style="color:var(--muted); font-size:13.5px; margin-top:6px">[Date] &mdash; Replace with your latest update.</div>
+              <div style="border-top:1px solid var(--border); margin:12px 0"></div>
+              <div style="font-weight:700">&bull; Office hours</div>
+              <div style="color:var(--muted); font-size:13.5px; margin-top:6px">[Details] &mdash; Replace with current schedule.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== ABOUT PAGE ===== -->
+    <div class="page-view" id="page-about" style="display:none">
+      <div class="section-title"><h2>About Us</h2><span>Our mission, values, and story</span></div>
+      <div style="margin-top:18px">
+        <div class="card" style="margin-bottom:16px">
+          <h3 style="margin:0 0 10px">Our Mission</h3>
+          <p style="color:var(--muted);margin:0">To deliver innovative solutions that empower businesses to achieve their full potential. We believe in building lasting partnerships through trust, transparency, and exceptional service.</p>
+        </div>
+        <div class="two-col" style="margin-top:14px">
+          <div class="card">
+            <h3 style="margin:0 0 8px;font-size:15px">&#10003; Core Values</h3>
+            <ul class="list" style="margin:0">
+              <li><strong>Integrity</strong> — We do the right thing, always</li>
+              <li><strong>Excellence</strong> — We pursue the highest standards</li>
+              <li><strong>Innovation</strong> — We embrace change and new ideas</li>
+              <li><strong>Collaboration</strong> — We succeed together</li>
+              <li><strong>Customer-first</strong> — Our clients are our priority</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3 style="margin:0 0 8px;font-size:15px">&#128200; Company Overview</h3>
+            <p style="margin:0;color:var(--muted)">Founded with a vision to transform the [your industry] landscape, we have grown into a trusted partner for organizations worldwide. Our team brings decades of combined experience across strategy, technology, and operations.</p>
+            <ul class="list" style="margin-top:10px">
+              <li>Operational excellence driven by data</li>
+              <li>Long-term partnerships with measurable impact</li>
+              <li>Commitment to sustainable growth</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SERVICES PAGE ===== -->
+    <div class="page-view" id="page-services" style="display:none">
+      <div class="section-title"><h2>Our Services</h2><span>Comprehensive solutions tailored to your needs</span></div>
+      <div class="grid" style="margin-top:18px">
+        <div class="feature">
+          <h3>&#128200; Consulting</h3>
+          <p>Strategic planning, market analysis, and business transformation guidance. We help you identify opportunities, mitigate risks, and chart a clear path forward with data-driven recommendations.</p>
+        </div>
+        <div class="feature">
+          <h3>&#9881; Implementation</h3>
+          <p>End-to-end deployment of solutions, system integration, and operational setup. Our team works alongside yours to ensure seamless rollout with measurable outcomes and minimal disruption.</p>
+        </div>
+        <div class="feature">
+          <h3>&#128295; Support</h3>
+          <p>Ongoing maintenance, troubleshooting, and continuous improvement. We provide reliable support to keep your systems running smoothly with guaranteed response times.</p>
+        </div>
+        <div class="feature">
+          <h3>&#9729; Managed Services</h3>
+          <p>Full-service management of your critical operations. Reduce your team's workload with predictable delivery, proactive monitoring, and dedicated account management.</p>
+        </div>
+        <div class="feature">
+          <h3>&#128202; Reporting &amp; Analytics</h3>
+          <p>Custom dashboards, performance summaries, and actionable insights for stakeholders. Make informed decisions with real-time data visualization and trend analysis.</p>
+        </div>
+        <div class="feature">
+          <h3>&#127891; Training</h3>
+          <p>Workshops, documentation, and knowledge transfer for smooth adoption. Empower your team with the skills they need to succeed through structured learning programs.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== COMPANY (TEAM) PAGE ===== -->
+    <div class="page-view" id="page-team" style="display:none">
+      <div class="section-title"><h2>Company</h2><span>Our team &amp; organizational structure</span></div>
+      <div class="grid" style="margin-top:18px">
+
+        <!-- Daniel Nguyễn - Founder & Director -->
+        <div class="member-card" onclick="showMemberModal('Daniel Nguyễn','Founder &amp; Director','role-director','Oversees all company operations, strategy, and growth. With years of industry experience, Daniel leads the organization with vision and dedication.','Founder, Director')">
+          <div class="expand-icon">&#9432;</div>
+          <div class="avatar">&#128100;</div>
+          <h3 style="margin:0;font-size:15px">Daniel Nguyễn</h3>
+          <div><span class="role-tag role-director">Founder &amp; Director</span></div>
+        </div>
+
+        <!-- Công - IT -->
+        <div class="member-card" onclick="showMemberModal('Công','IT/','role-it','Responsible for maintaining IT infrastructure, systems administration, and technical support across the organization.','IT')">
+          <div class="expand-icon">&#9432;</div>
+          <div class="avatar">&#128187;</div>
+          <h3 style="margin:0;font-size:15px">Công</h3>
+          <div><span class="role-tag role-it">IT</span></div>
+        </div>
+
+        <!-- Tấn Thắng - IT -->
+        <div class="member-card" onclick="showMemberModal('Tấn Thắng','IT/','role-it','Handles network operations, system security, and technology solutions to keep our digital environment running smoothly.','IT')">
+          <div class="expand-icon">&#9432;</div>
+          <div class="avatar">&#128187;</div>
+          <h3 style="margin:0;font-size:15px">Tấn Thắng</h3>
+          <div><span class="role-tag role-it">IT</span></div>
+        </div>
+
+        <!-- Trọng Việt - Executor -->
+        <div class="member-card" onclick="showMemberModal('Trọng Việt','Executor (Người thực thi)','role-executor','Responsible for executing key projects and operational tasks. Ensures timely delivery and quality output.','Executor, Người thực thi')">
+          <div class="expand-icon">&#9432;</div>
+          <div class="avatar">&#128170;</div>
+          <h3 style="margin:0;font-size:15px">Trọng Việt</h3>
+          <div><span class="role-tag role-executor">Executor</span></div>
+        </div>
+
+        <!-- Thanh Trai - Executor -->
+        <div class="member-card" onclick="showMemberModal('Thanh Trai','Executor (Người thực thi)','role-executor','Carries out operational tasks and project execution with precision and efficiency.','Executor, Người thực thi')">
+          <div class="expand-icon">&#9432;</div>
+          <div class="avatar">&#128170;</div>
+          <h3 style="margin:0;font-size:15px">Thanh Trai</h3>
+          <div><span class="role-tag role-executor">Executor</span></div>
+        </div>
+
+        <!-- Phước Bình - Executor -->
+        <div class="member-card" onclick="showMemberModal('Phước Bình','Executor (Người thực thi)','role-executor','Supports project execution and operational workflows. Dedicated to achieving team goals.','Executor, Người thực thi')">
+          <div class="expand-icon">&#9432;</div>
+          <div class="avatar">&#128170;</div>
+          <h3 style="margin:0;font-size:15px">Phước Bình</h3>
+          <div><span class="role-tag role-executor">Executor</span></div>
+        </div>
+
+        <!-- Placeholder: Accounting (Kế toán) -->
+        <div class="member-card-placeholder">
+          <div style="text-align:center;padding:16px">
+            <div style="font-size:28px;margin-bottom:6px;opacity:0.5">&#128202;</div>
+            <div>Accounting / Kế toán</div>
+            <div style="font-size:11px;margin-top:4px;opacity:0.6">Position open — future hire</div>
+          </div>
+        </div>
+
+        <!-- Placeholder: Future role -->
+        <div class="member-card-placeholder">
+          <div style="text-align:center;padding:16px">
+            <div style="font-size:28px;margin-bottom:6px;opacity:0.5">&#128101;</div>
+            <div>Additional role</div>
+            <div style="font-size:11px;margin-top:4px;opacity:0.6">Position open — future hire</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ===== CONTACT PAGE ===== -->
+    <div class="page-view" id="page-contact" style="display:none">
+      <div class="section-title"><h2>Contact Us</h2><span>We'd love to hear from you</span></div>
+      <div class="two-col" style="margin-top:18px">
+        <div class="card">
+          <h3 style="margin:0 0 12px;font-size:16px">&#128231; Send us a message</h3>
+          <form id="contact-form" onsubmit="return handleContactForm(event)">
+            <div class="full-row">
+              <input id="contact-name" type="text" placeholder="Your full name" required />
+              <input id="contact-email" type="email" placeholder="Your email address" required />
+              <textarea id="contact-message" rows="5" placeholder="Your message..." required style="width:100%;padding:12px;border-radius:12px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text);outline:none;resize:vertical;font-family:inherit"></textarea>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;margin-top:4px">
+              <button class="btn primary" id="contact-submit-btn" type="submit"><span class="dot"></span> Send Message</button>
+              <span id="contact-status" style="font-size:13px;color:var(--muted)"></span>
+            </div>
+          </form>
+        </div>
+        <div class="card">
+          <h3 style="margin:0 0 12px;font-size:16px">&#128222; Other ways to reach us</h3>
+          <div style="margin-bottom:14px">
+            <div style="color:var(--muted);font-size:13px">Email</div>
+            <div><a class="btn primary" href="mailto:contact@redsv.vn" style="margin-top:6px;padding:8px 14px;font-size:13px">contact@redsv.vn</a></div>
+          </div>
+          <div style="margin-bottom:14px">
+            <div style="color:var(--muted);font-size:13px">Office</div>
+            <div style="margin-top:4px;font-size:14px">123 Business Avenue, Suite 100<br/>[City, Country]</div>
+          </div>
+          <div>
+            <div style="color:var(--muted);font-size:13px">Response time</div>
+            <div style="margin-top:4px;font-size:14px;color:var(--accent2)">Typically within 24 hours</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      &copy; <span id="year"></span> Company Name. Private site template. 
+      <span style="color:var(--muted);font-size:12px">| <a href="#home" style="color:var(--accent)">Home</a> | <a href="#about" style="color:var(--accent)">About</a> | <a href="#services" style="color:var(--accent)">Services</a> | <a href="#team" style="color:var(--accent)">Team</a> | <a href="#contact" style="color:var(--accent)">Contact</a></span>
+    </footer>
+  </main>
+
+  <!-- Member Detail Modal -->
+  <div class="member-modal-overlay" id="member-modal" onclick="closeMemberModal(event)">
+    <div class="member-modal">
+      <button class="member-modal-close" onclick="closeMemberModal()">&times;</button>
+      <div class="avatar-big" id="modal-avatar">&#128100;</div>
+      <h3 id="modal-name"></h3>
+      <p class="modal-role" id="modal-role"></p>
+      <p class="modal-desc" id="modal-desc"></p>
+    </div>
+  </div>
+
+  <!-- Chat System -->
+  <button id="chat-toggle" type="button" onclick="toggleChat()" aria-label="Toggle chat">&#128172;</button>
+  <div id="chat-area">
+    <div class="chat-box">
+      <div class="chat-header">
+        <span>&#128172; Team Chat</span>
+        <button onclick="toggleChat()">&times;</button>
+      </div>
+      <div class="chat-msgs" id="chat-msgs"></div>
+      <div class="chat-input">
+        <input id="chat-input" type="text" placeholder="Type a message..." onkeydown="if(event.key==='Enter')sendChatMsg()" />
+        <button onclick="sendChatMsg()">&#10148;</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // === Configuration ===
+    var API_BASE = "http://localhost:5000";
+    var TOKEN_KEY = "private_access_token";
+    var USER_KEY = "private_access_user";
+
+    // === DOM refs ===
+    var gate = document.getElementById('gate');
+    var content = document.getElementById('content');
+    var logoutBtn = document.getElementById('lock');
+    var userInfoBar = document.getElementById('user-info-bar');
+    var userInfoText = document.getElementById('user-info-text');
+    var loginEmail = document.getElementById('login-email');
+    var loginPassword = document.getElementById('login-password');
+    var loginBtn = document.getElementById('login-btn');
+    var loginError = document.getElementById('login-error');
+    var regName = document.getElementById('reg-name');
+    var regEmail = document.getElementById('reg-email');
+    var regPassword = document.getElementById('reg-password');
+    var registerBtn = document.getElementById('register-btn');
+    var registerError = document.getElementById('register-error');
+    var registerSuccess = document.getElementById('register-success');
+    var checkStatusBtn = document.getElementById('check-status-btn');
+    var adminUsersList = document.getElementById('admin-users-list');
+    var adminLogoutBtn = document.getElementById('admin-logout-btn');
+
+    // === Helpers ===
+    function getToken() { return localStorage.getItem(TOKEN_KEY); }
+    function getUser() {
+      try { return JSON.parse(localStorage.getItem(USER_KEY)); } catch(e) { return null; }
+    }
+    function setAuth(token, user) {
+      localStorage.setItem(TOKEN_KEY, token);
+      localStorage.setItem(USER_KEY, JSON.stringify(user));
+    }
+    function clearAuth() {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+    }
+    function showError(el, msg) { if (el) el.textContent = msg; }
+    function clearErrors() {
+      showError(loginError, '');
+      showError(registerError, '');
+      showError(registerSuccess, '');
+    }
+
+    // === Tab Switching ===
+    function switchTab(tab) {
+      clearErrors();
+      document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+      document.querySelectorAll('.auth-form').forEach(function(f) { f.classList.remove('active'); });
+      var tabEl = document.querySelector('.tab[data-tab="' + tab + '"]');
+      if (tabEl) tabEl.classList.add('active');
+      var formEl = document.getElementById('form-' + tab);
+      if (formEl) formEl.classList.add('active');
+    }
+
+    // === API Calls ===
+    async function api(path, options) {
+      if (!options) options = {};
+      var headers = { 'Content-Type': 'application/json' };
+      if (options.headers) {
+        for (var k in options.headers) headers[k] = options.headers[k];
+      }
+      var token = getToken();
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      var res = await fetch(API_BASE + path, {
+        method: options.method || 'GET',
+        headers: headers,
+        body: options.body || null
+      });
+      var data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Request failed');
+      return data;
+    }
+
+    // === Login ===
+    async function handleLogin() {
+      clearErrors();
+      var email = loginEmail.value.trim();
+      var password = loginPassword.value;
+      if (!email || !password) {
+        showError(loginError, 'Please enter your email and password.');
+        return;
+      }
+      loginBtn.disabled = true;
+      loginBtn.innerHTML = '<span class="spinner"></span> Signing in...';
+      try {
+        var data = await api('/api/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({ email: email, password: password })
+        });
+        setAuth(data.token, data.user);
+        showError(loginError, '');
+        checkAuthState();
+      } catch (err) {
+        showError(loginError, err.message);
+      } finally {
+        loginBtn.disabled = false;
+        loginBtn.innerHTML = '<span class="dot"></span> Sign In';
+      }
+    }
+
+    // === Register ===
+    async function handleRegister() {
+      clearErrors();
+      var name = regName.value.trim();
+      var email = regEmail.value.trim();
+      var password = regPassword.value;
+      if (!name || !email || !password) {
+        showError(registerError, 'All fields are required.');
+        return;
+      }
+      if (password.length < 6) {
+        showError(registerError, 'Password must be at least 6 characters.');
+        return;
+      }
+      registerBtn.disabled = true;
+      registerBtn.innerHTML = '<span class="spinner"></span> Registering...';
+      try {
+        var data = await api('/api/auth/register', {
+          method: 'POST',
+          body: JSON.stringify({ name: name, email: email, password: password })
+        });
+        showError(registerError, '');
+        showError(registerSuccess, data.message);
+        regName.value = '';
+        regEmail.value = '';
+        regPassword.value = '';
+        setTimeout(function() {
+          switchTab('login');
+          loginEmail.value = email;
+          showError(registerSuccess, '');
+        }, 2000);
+      } catch (err) {
+        showError(registerError, err.message);
+      } finally {
+        registerBtn.disabled = false;
+        registerBtn.innerHTML = '<span class="dot"></span> Register';
+      }
+    }
+
+    // === Admin: Update User Status ===
+    async function handleAdminAction(userId, status) {
+      try {
+        await api('/api/admin/users/' + userId + '/status', {
+          method: 'PATCH',
+          body: JSON.stringify({ status: status })
+        });
+        loadAdminUsers();
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    // === Admin: Update User Role ===
+    async function handleRoleChange(userId, role) {
+      try {
+        await api('/api/admin/users/' + userId + '/role', {
+          method: 'PATCH',
+          body: JSON.stringify({ role: role })
+        });
+        loadAdminUsers();
+      } catch (err) {
+        alert('Error updating role: ' + err.message);
+        loadAdminUsers();
+      }
+    }
+
+    // === Admin: Load Users ===
+    async function loadAdminUsers() {
+      if (!adminUsersList) return;
+      adminUsersList.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)"><span class="spinner"></span> Loading users...</div>';
+      try {
+        var users = await api('/api/admin/users');
+        if (!users || users.length === 0) {
+          adminUsersList.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">No users registered yet.</div>';
+          return;
+        }
+        var html = '<table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+        for (var i = 0; i < users.length; i++) {
+          var u = users[i];
+          var statusClass = 'status-' + u.status.toLowerCase();
+          html += '<tr>';
+          html += '<td>' + u.name + '</td>';
+          html += '<td>' + u.email + '</td>';
+          html += '<td><select onchange="handleRoleChange(' + u.id + ',this.value)" style="padding:4px 8px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text);font-size:12px;outline:none">';
+          var roles = ['ADMIN','DIRECTOR','LEADER','IT','IMPLEMENTATION','ACCOUNTING','EMPLOYEE'];
+          for (var r = 0; r < roles.length; r++) {
+            html += '<option value="' + roles[r] + '"' + (u.role === roles[r] ? ' selected' : '') + '>' + roles[r] + '</option>';
+          }
+          html += '</select></td>';
+          html += '<td class="' + statusClass + '">' + u.status + '</td>';
+          html += '<td class="admin-actions">';
+          if (u.status === 'PENDING') {
+            html += '<button class="btn success" onclick="handleAdminAction(' + u.id + ',\'APPROVED\')" style="padding:6px 12px;font-size:12px">Approve</button>';
+            html += '<button class="btn danger" onclick="handleAdminAction(' + u.id + ',\'REJECTED\')" style="padding:6px 12px;font-size:12px">Reject</button>';
+          } else {
+            html += '<span style="color:var(--muted);font-size:12px">—</span>';
+          }
+          html += '</td>';
+          html += '</tr>';
+        }
+        html += '</tbody></table>';
+        adminUsersList.innerHTML = html;
+      } catch (err) {
+        adminUsersList.innerHTML = '<div style="text-align:center;padding:20px;color:var(--danger)">Error loading users: ' + err.message + '</div>';
+      }
+    }
+
+    // === Check Pending Count (Notification Badge) ===
+    var pendingPollInterval = null;
+    var lastPendingCount = 0;
+
+    async function checkPendingCount() {
+      try {
+        var result = await api('/api/admin/pending-count');
+        var badge = document.getElementById('pending-badge');
+        if (!badge) return;
+        if (result.count > 0) {
+          badge.style.display = 'inline';
+          badge.textContent = result.count + ' pending';
+          if (result.count > lastPendingCount) {
+            // New user registered — show browser notification
+            var newUsers = result.count - lastPendingCount;
+            if ('Notification' in window && Notification.permission === 'granted') {
+              new Notification('New Registration' + (newUsers > 1 ? 's' : ''), {
+                body: newUsers + ' new user' + (newUsers > 1 ? 's have' : ' has') + ' registered and needs approval.',
+                icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🔔</text></svg>'
+              });
+            }
+            // Also auto-reload the user list if admin panel is visible
+            loadAdminUsers();
+          }
+          lastPendingCount = result.count;
+        } else {
+          badge.style.display = 'none';
+          lastPendingCount = 0;
+        }
+      } catch (e) {
+        // Silently ignore polling errors
+      }
+    }
+
+    // === Check Auth State ===
+    function checkAuthState() {
+      var user = getUser();
+      var token = getToken();
+
+      if (!token || !user) {
+        gate.style.display = 'flex';
+        content.style.display = 'none';
+        logoutBtn.style.display = 'none';
+        if (userInfoBar) userInfoBar.style.display = 'none';
+        switchTab('login');
+        return;
+      }
+
+      // User is logged in
+      gate.style.display = 'none';
+      content.style.display = 'block';
+
+      // Update lock button
+      logoutBtn.style.display = 'inline-block';
+
+      // Show user info bar
+      if (userInfoBar && userInfoText) {
+        var statusBadge = '';
+        if (user.status === 'PENDING') statusBadge = ' <span class="status-pending">(Pending)</span>';
+        else if (user.status === 'APPROVED') statusBadge = ' <span class="status-approved">(Approved) &#10003;</span>';
+        else if (user.status === 'REJECTED') statusBadge = ' <span class="status-rejected">(Rejected)</span>';
+        var roleDisplay = user.role ? '<span class="sub-badge">' + user.role + '</span>' : '';
+        userInfoText.innerHTML = '&#128100; <strong>' + user.name + '</strong>' + roleDisplay + statusBadge;
+        userInfoBar.style.display = 'block';
+      }
+
+      // Show admin panel nav button if role is ADMIN
+      var adminNavBtn = document.getElementById('admin-panel-btn');
+      if (user.role === 'ADMIN') {
+        if (adminNavBtn) adminNavBtn.style.display = 'inline-block';
+        loadAdminUsers();
+      } else {
+        if (adminNavBtn) adminNavBtn.style.display = 'none';
+      }
+
+      // For all approved users (including ADMIN), close the gate and show content
+      if (user.role === 'ADMIN' || user.status === 'APPROVED') {
+        gate.style.display = 'none';
+        content.style.display = 'block';
+      } else if (user.status === 'PENDING') {
+        document.getElementById('form-login').classList.remove('active');
+        document.getElementById('form-register').classList.remove('active');
+        document.getElementById('form-pending').classList.add('active');
+        document.getElementById('form-admin').classList.remove('active');
+        gate.style.display = 'flex';
+        content.style.display = 'none';
+      } else if (user.status === 'REJECTED') {
+        document.getElementById('form-login').classList.remove('active');
+        document.getElementById('form-register').classList.remove('active');
+        document.getElementById('form-pending').classList.add('active');
+        document.querySelector('#form-pending h3').textContent = 'Account Rejected';
+        document.querySelector('#form-pending p').innerHTML = 'Your account has been rejected by an administrator. Please contact support for more information.';
+        document.getElementById('form-admin').classList.remove('active');
+        gate.style.display = 'flex';
+        content.style.display = 'none';
+      } else {
+        // Approved - show content
+        gate.style.display = 'none';
+        content.style.display = 'block';
+      }
+    }
+
+    // === Check Status (for pending users) ===
+    async function handleCheckStatus() {
+      try {
+        var user = await api('/api/auth/me');
+        if (user.status === 'APPROVED') {
+          var storedUser = getUser();
+          if (storedUser) {
+            storedUser.status = 'APPROVED';
+            var token = getToken();
+            setAuth(token, storedUser);
+          }
+          checkAuthState();
+        } else if (user.status === 'REJECTED') {
+          var storedUser = getUser();
+          if (storedUser) {
+            storedUser.status = 'REJECTED';
+            var token = getToken();
+            setAuth(token, storedUser);
+          }
+          checkAuthState();
+        } else {
+          alert('Your account is still pending approval. Please check back later.');
+        }
+      } catch (err) {
+        alert('Error checking status: ' + err.message);
+      }
+    }
+
+    // === Logout ===
+    function handleLogout() {
+      clearAuth();
+      checkAuthState();
+    }
+
+    // === Toggle Admin Panel (Nav Button) ===
+    var adminPanelBtn = document.getElementById('admin-panel-btn');
+    if (adminPanelBtn) {
+      adminPanelBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        gate.style.display = 'flex';
+        document.getElementById('form-login').classList.remove('active');
+        document.getElementById('form-register').classList.remove('active');
+        document.getElementById('form-pending').classList.remove('active');
+        document.getElementById('form-admin').classList.add('active');
+        loadAdminUsers();
+      });
+    }
+
+    // === Event Listeners ===
+    loginBtn.addEventListener('click', handleLogin);
+    registerBtn.addEventListener('click', handleRegister);
+    logoutBtn.addEventListener('click', function(e) { e.preventDefault(); handleLogout(); });
+    adminLogoutBtn.addEventListener('click', handleLogout);
+    if (checkStatusBtn) checkStatusBtn.addEventListener('click', handleCheckStatus);
+
+    // Allow Enter key to submit forms
+    loginPassword.addEventListener('keydown', function(e) { if (e.key === 'Enter') handleLogin(); });
+    regPassword.addEventListener('keydown', function(e) { if (e.key === 'Enter') handleRegister(); });
+
+    // === Start/Stop Pending Polling ===
+    function startPendingPolling() {
+      if (pendingPollInterval) clearInterval(pendingPollInterval);
+      lastPendingCount = 0;
+      checkPendingCount(); // Check immediately
+      pendingPollInterval = setInterval(checkPendingCount, 5000); // Check every 5 seconds
+    }
+
+    function stopPendingPolling() {
+      if (pendingPollInterval) {
+        clearInterval(pendingPollInterval);
+        pendingPollInterval = null;
+      }
+    }
+
+    // Intercept checkAuthState to manage polling
+    var origCheckAuthState = checkAuthState;
+    checkAuthState = function() {
+      origCheckAuthState();
+      var user = getUser();
+      if (user && user.role === 'ADMIN' && getToken()) {
+        startPendingPolling();
+        // Request notification permission
+        if ('Notification' in window && Notification.permission === 'default') {
+          Notification.requestPermission();
+        }
+      } else {
+        stopPendingPolling();
+      }
+      // Show/hide chat based on auth
+      var chatToggle = document.getElementById('chat-toggle');
+      var chatArea = document.getElementById('chat-area');
+      if (user && getToken() && (user.status === 'APPROVED' || user.role === 'ADMIN')) {
+        chatToggle.style.display = 'block';
+      } else {
+        chatToggle.style.display = 'none';
+        chatArea.style.display = 'none';
+      }
+    };
+
+    // === Chat Functions ===
+    var chatPollInterval = null;
+
+    function toggleChat() {
+      var chatArea = document.getElementById('chat-area');
+      var chatToggle = document.getElementById('chat-toggle');
+      if (chatArea.style.display === 'block') {
+        chatArea.style.display = 'none';
+        chatToggle.textContent = '\u{1F4AC}';
+        if (chatPollInterval) { clearInterval(chatPollInterval); chatPollInterval = null; }
+      } else {
+        chatArea.style.display = 'block';
+        chatToggle.textContent = '\u274C';
+        loadChatMessages();
+        if (chatPollInterval) clearInterval(chatPollInterval);
+        chatPollInterval = setInterval(loadChatMessages, 3000);
+      }
+    }
+
+    async function loadChatMessages() {
+      var chatMsgs = document.getElementById('chat-msgs');
+      if (!chatMsgs) return;
+      try {
+        var messages = await api('/api/chat/messages');
+        var user = getUser();
+        var html = '';
+        for (var i = 0; i < messages.length; i++) {
+          var m = messages[i];
+          var isOwn = (m.senderId === user.id);
+          var cls = isOwn ? 'own' : 'other';
+          html += '<div class="msg ' + cls + '">';
+          html += '<div>' + m.content + '</div>';
+          html += '<div class="meta">' + m.senderName + ' (' + m.senderRole + ') &middot; ' + new Date(m.createdAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) + '</div>';
+          html += '</div>';
+        }
+        if (messages.length === 0) {
+          html = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px">No messages yet. Say hello!</div>';
+        }
+        chatMsgs.innerHTML = html;
+        chatMsgs.scrollTop = chatMsgs.scrollHeight;
+      } catch (e) {
+        // Silently ignore
+      }
+    }
+
+    async function sendChatMsg() {
+      var input = document.getElementById('chat-input');
+      var content = input.value.trim();
+      if (!content) return;
+      input.value = '';
+      try {
+        await api('/api/chat/messages', {
+          method: 'POST',
+          body: JSON.stringify({ content: content })
+        });
+        loadChatMessages();
+      } catch (err) {
+        alert('Error sending message: ' + err.message);
+      }
+    }
+
+    // === Hash Router: Page Navigation ===
+    var pageViews = document.querySelectorAll('.page-view');
+    var navLinks = document.querySelectorAll('nav a[href^="#"]');
+
+    function showPage(pageId) {
+      pageViews.forEach(function(p) { p.style.display = 'none'; });
+      var target = document.getElementById('page-' + pageId);
+      if (target) {
+        target.style.display = 'block';
+      } else {
+        // Default to home
+        var home = document.getElementById('page-home');
+        if (home) home.style.display = 'block';
+      }
+      // Update active link in nav
+      navLinks.forEach(function(a) { a.classList.remove('active-link'); });
+      var activeNav = document.querySelector('nav a[href="#' + pageId + '"]');
+      if (activeNav) activeNav.classList.add('active-link');
+    }
+
+    function handleRouteChange() {
+      var hash = window.location.hash.replace('#', '') || 'home';
+      showPage(hash);
+    }
+
+    window.addEventListener('hashchange', handleRouteChange);
+    window.addEventListener('load', handleRouteChange);
+
+    // === Override nav link click for hash routing ===
+    navLinks.forEach(function(a) {
+      a.addEventListener('click', function(e) {
+        // Allow default hash behavior but also trigger route
+        setTimeout(handleRouteChange, 10);
+      });
+    });
+
+    // === Contact Form Handler ===
+    async function handleContactForm(event) {
+      event.preventDefault();
+      var name = document.getElementById('contact-name').value.trim();
+      var email = document.getElementById('contact-email').value.trim();
+      var message = document.getElementById('contact-message').value.trim();
+      var status = document.getElementById('contact-status');
+      var submitBtn = document.getElementById('contact-submit-btn');
+
+      if (!name || !email || !message) {
+        status.textContent = 'Please fill in all fields.';
+        return false;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner"></span> Sending...';
+      status.textContent = '';
+
+      try {
+        // If we have an authenticated user, send via API. Otherwise, simulate.
+        var token = getToken();
+        var user = getUser();
+        if (token && user) {
+          await api('/api/contact', {
+            method: 'POST',
+            body: JSON.stringify({ name: name, email: email, message: message })
+          });
+        } else {
+          // Simulate sending (since contact API may not exist)
+          await new Promise(function(resolve) { setTimeout(resolve, 1000); });
+        }
+        status.textContent = 'Message sent! We\'ll get back to you soon.';
+        status.style.color = 'var(--accent2)';
+        document.getElementById('contact-name').value = '';
+        document.getElementById('contact-email').value = '';
+        document.getElementById('contact-message').value = '';
+      } catch (err) {
+        status.textContent = 'Error: ' + err.message;
+        status.style.color = 'var(--danger)';
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<span class="dot"></span> Send Message';
+      }
+      return false;
+    }
+
+    // === Member Detail Modal ===
+    function showMemberModal(name, role, roleClass, description, roleLabel) {
+      var overlay = document.getElementById('member-modal');
+      document.getElementById('modal-name').textContent = name;
+      document.getElementById('modal-role').textContent = roleLabel || role;
+      document.getElementById('modal-desc').textContent = description;
+      // Choose avatar based on role
+      var avatarEl = document.getElementById('modal-avatar');
+      if (roleClass === 'role-director') avatarEl.textContent = '\u{1F9D1}\u200D\u{1F3EB}';
+      else if (roleClass === 'role-it') avatarEl.textContent = '\u{1F4BB}';
+      else if (roleClass === 'role-executor') avatarEl.textContent = '\u{1F4AA}';
+      else avatarEl.textContent = '\u{1F9D1}';
+      overlay.classList.add('active');
+    }
+
+    function closeMemberModal(event) {
+      var overlay = document.getElementById('member-modal');
+      if (!event || event.target === overlay) {
+        overlay.classList.remove('active');
+      }
+    }
+
+    // === Document Repository Dropdown ===
+
+    // --- CONFIGURABLE: Google Drive Links (edit these placeholders) ---
+    var DOC_FUND_LINKS = {
+      "Fund 1": "YOUR_GOOGLE_DRIVE_LINK_HERE_FUND_1",
+      "Fund 2": "YOUR_GOOGLE_DRIVE_LINK_HERE_FUND_2",
+      "Fund 3": "YOUR_GOOGLE_DRIVE_LINK_HERE_FUND_3"
+    };
+
+    // Build dropdown menu from the links object (scalable — just add more entries)
+    function buildDropdownMenu() {
+      var menu = document.getElementById('doc-repo-menu');
+      if (!menu) return;
+      var html = '';
+      for (var fundName in DOC_FUND_LINKS) {
+        var link = DOC_FUND_LINKS[fundName];
+        html += '<a href="' + link + '" target="_blank" rel="noopener noreferrer">' +
+                '<span class="gdrive-icon">&#128196;</span> ' + fundName +
+                '</a>';
+      }
+      menu.innerHTML = html;
+    }
+
+    function toggleDropdown(event) {
+      event.stopPropagation();
+      var btn = event.currentTarget;
+      var menu = document.getElementById('doc-repo-menu');
+      var isOpen = menu.classList.contains('show');
+      // Close all other dropdowns first
+      document.querySelectorAll('.dropdown-content.show').forEach(function(m) {
+        m.classList.remove('show');
+      });
+      document.querySelectorAll('.dropbtn.active').forEach(function(b) {
+        b.classList.remove('active');
+        b.setAttribute('aria-expanded', 'false');
+      });
+      if (!isOpen) {
+        menu.classList.add('show');
+        btn.classList.add('active');
+        btn.setAttribute('aria-expanded', 'true');
+      }
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.dropdown')) {
+        document.querySelectorAll('.dropdown-content.show').forEach(function(m) {
+          m.classList.remove('show');
+        });
+        document.querySelectorAll('.dropbtn.active').forEach(function(b) {
+          b.classList.remove('active');
+          b.setAttribute('aria-expanded', 'false');
+        });
+      }
+    });
+
+    // Build the dropdown menu on page load
+    buildDropdownMenu();
+
+    // === Init ===
+    document.getElementById('year').textContent = new Date().getFullYear();
+    checkAuthState();
+  </script>
+</body>
+</html>
+
