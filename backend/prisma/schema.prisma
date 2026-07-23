@@ -14,10 +14,14 @@ model User {
   password    String
   role        String        @default("EMPLOYEE")
   status      String        @default("PENDING")
+  group       String        @default("General")
   permissions String        @default("{}")
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   messages    ChatMessage[]
+  notifications Notification[]
+  sentMessages      PrivateMessage[] @relation("SentMessages")
+  receivedMessages  PrivateMessage[] @relation("ReceivedMessages")
 }
 
 model AccessCode {
@@ -39,5 +43,27 @@ model ChatMessage {
   content    String
   createdAt  DateTime @default(now())
   user       User     @relation(fields: [senderId], references: [id])
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  type      String   @default("info")
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model PrivateMessage {
+  id          Int      @id @default(autoincrement())
+  senderId    Int
+  receiverId  Int
+  content     String
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  sender      User     @relation("SentMessages", fields: [senderId], references: [id])
+  receiver    User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
 }
 

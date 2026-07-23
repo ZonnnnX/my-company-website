@@ -99,6 +99,199 @@
       transition:background .2s;
     }
     .logout-btn:hover{background:#a00000}
+
+    /* --- Notification Bell --- */
+    .notif-bell{
+      position:relative; display:inline-flex; align-items:center;
+      background:none; border:none; color:var(--muted);
+      font-size:20px; cursor:pointer; padding:6px 8px;
+      border-radius:8px; transition:all .2s;
+    }
+    .notif-bell:hover{color:var(--text); background:rgba(255,255,255,.06)}
+    .notif-bell .badge{
+      position:absolute; top:0; right:0;
+      background:var(--danger); color:#fff;
+      font-size:10px; font-weight:700;
+      min-width:16px; height:16px;
+      border-radius:999px; display:none;
+      align-items:center; justify-content:center;
+      padding:0 4px; line-height:1;
+    }
+    .notif-bell .badge.show{display:flex}
+
+    /* --- Notification Panel --- */
+    .notif-panel{
+      display:none; position:absolute; top:100%; right:0;
+      margin-top:4px; width:340px; max-height:400px;
+      background:rgba(18,26,45,.98); border:1px solid var(--border);
+      border-radius:12px; overflow:hidden;
+      box-shadow:0 12px 40px rgba(0,0,0,.45);
+      z-index:200; backdrop-filter:blur(12px);
+    }
+    .notif-panel.show{display:block}
+    .notif-panel-header{
+      padding:12px 16px; border-bottom:1px solid var(--border);
+      display:flex; justify-content:space-between; align-items:center;
+      font-size:14px; font-weight:700;
+    }
+    .notif-panel-header button{
+      background:none; border:none; color:var(--accent);
+      cursor:pointer; font-size:12px; padding:4px 8px;
+      border-radius:6px;
+    }
+    .notif-panel-header button:hover{background:rgba(106,167,255,.1)}
+    .notif-list{overflow-y:auto; max-height:340px}
+    .notif-item{
+      padding:12px 16px; border-bottom:1px solid rgba(255,255,255,.04);
+      cursor:pointer; transition:background .15s;
+    }
+    .notif-item:hover{background:rgba(255,255,255,.04)}
+    .notif-item.unread{background:rgba(106,167,255,.06)}
+    .notif-item .notif-title{font-size:13px; font-weight:600; color:var(--text)}
+    .notif-item .notif-msg{font-size:12px; color:var(--muted); margin-top:2px}
+    .notif-item .notif-time{font-size:11px; color:var(--muted); opacity:.6; margin-top:4px}
+    .notif-empty{padding:30px; text-align:center; color:var(--muted); font-size:13px}
+
+    /* --- Private Chat (Messenger-style) --- */
+    .private-chat-toggle{
+      display:none; position:fixed; bottom:20px; left:20px; z-index:1000;
+      width:56px; height:56px; border-radius:50%;
+      background:linear-gradient(135deg,var(--accent),var(--accent2));
+      border:none; color:#fff; font-size:24px; cursor:pointer;
+      box-shadow:0 6px 20px rgba(0,0,0,.4);
+    }
+    .private-chat-toggle:hover{transform:scale(1.05)}
+    .private-chat-toggle .badge{
+      position:absolute; top:-4px; right:-4px;
+      background:var(--danger); color:#fff;
+      font-size:11px; font-weight:700;
+      min-width:20px; height:20px; border-radius:999px;
+      display:none; align-items:center; justify-content:center;
+      padding:0 5px;
+    }
+    .private-chat-toggle .badge.show{display:flex}
+    #private-chat-area{
+      display:none; position:fixed; bottom:20px; left:20px;
+      z-index:1000; width:360px; max-width:calc(100vw - 40px);
+    }
+    .private-chat-box{background:var(--card);border:1px solid var(--border);border-radius:18px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+    .private-chat-header{
+      padding:14px 18px;border-bottom:1px solid var(--border);
+      display:flex;justify-content:space-between;align-items:center;
+      font-weight:700;font-size:14px;
+    }
+    .private-chat-header button{background:none;border:none;color:var(--muted);cursor:pointer;font-size:22px;padding:0 4px}
+    .private-chat-conversations{max-height:300px;overflow-y:auto}
+    .conv-item{
+      display:flex;align-items:center;gap:10px;padding:12px 16px;
+      border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;
+      transition:background .15s;
+    }
+    .conv-item:hover{background:rgba(255,255,255,.04)}
+    .conv-item .conv-avatar{
+      width:36px;height:36px;border-radius:50%;
+      background:linear-gradient(135deg,var(--accent),var(--accent2));
+      display:flex;align-items:center;justify-content:center;
+      font-size:16px;color:#fff;flex-shrink:0;
+    }
+    .conv-item .conv-info{flex:1;min-width:0}
+    .conv-item .conv-name{font-size:13px;font-weight:600;color:var(--text)}
+    .conv-item .conv-preview{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .conv-item .conv-unread{
+      background:var(--accent);color:#fff;font-size:10px;font-weight:700;
+      min-width:18px;height:18px;border-radius:999px;
+      display:none;align-items:center;justify-content:center;padding:0 5px;
+    }
+    .conv-item .conv-unread.show{display:flex}
+    .private-chat-msgs{height:280px;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px}
+    .private-chat-msgs .msg{padding:10px 14px;border-radius:14px;max-width:85%;font-size:13px;line-height:1.4}
+    .private-chat-msgs .msg.own{background:linear-gradient(135deg,rgba(106,167,255,.3),rgba(124,240,193,.2));align-self:flex-end;border-bottom-right-radius:4px}
+    .private-chat-msgs .msg.other{background:rgba(255,255,255,.06);align-self:flex-start;border-bottom-left-radius:4px}
+    .private-chat-msgs .msg .meta{font-size:11px;color:var(--muted);margin-top:4px}
+    .private-chat-input{display:flex;gap:8px;padding:12px;border-top:1px solid var(--border)}
+    .private-chat-input input{flex:1;padding:10px 14px;border-radius:24px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text);outline:none}
+    .private-chat-input button{width:40px;height:40px;border-radius:50%;border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center}
+    .private-chat-back{background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:0 8px 0 0;display:none}
+    .private-chat-back:hover{color:var(--text)}
+
+    /* --- Enhanced Dropdown (Grouped) --- */
+    .dropdown-content .group-label{
+      display:block; padding:6px 16px 4px; color:var(--accent);
+      font-size:11px; font-weight:700; text-transform:uppercase;
+      letter-spacing:.5px; border-bottom:1px solid var(--border);
+      margin-top:4px;
+    }
+    .dropdown-content .group-label:first-child{margin-top:0}
+    .dropdown-content .manage-link{
+      display:block; padding:10px 16px; color:var(--accent2);
+      font-size:13px; border-top:1px solid var(--border);
+      transition:all .15s; cursor:pointer;
+      text-align:center; font-weight:600;
+    }
+    .dropdown-content .manage-link:hover{background:rgba(124,240,193,.08)}
+    .dropdown-content .delete-item{
+      float:right; opacity:0; transition:opacity .15s;
+      background:none; border:none; color:var(--danger);
+      cursor:pointer; font-size:14px; padding:0 4px;
+    }
+    .dropdown-content a:hover .delete-item{opacity:1}
+
+    /* --- Doc Manager Modal --- */
+    .doc-manager-overlay{
+      position:fixed; inset:0; z-index:3000;
+      background:rgba(0,0,0,.6); display:none;
+      align-items:center; justify-content:center;
+      padding:20px; backdrop-filter:blur(4px);
+    }
+    .doc-manager-overlay.active{display:flex}
+    .doc-manager-modal{
+      background:var(--card); border:1px solid var(--border);
+      border-radius:18px; padding:24px;
+      max-width:560px; width:100%; max-height:80vh;
+      box-shadow:0 30px 80px rgba(0,0,0,.5);
+      overflow-y:auto; animation:modalIn .25s ease;
+    }
+    .doc-manager-modal h3{margin:0 0 16px; font-size:18px; display:flex; align-items:center; gap:10px}
+    .doc-manager-modal .close-btn{
+      background:none; border:none; color:var(--muted);
+      font-size:24px; cursor:pointer; float:right; padding:0 4px;
+    }
+    .doc-manager-modal .close-btn:hover{color:var(--text)}
+    .doc-item-row{
+      display:flex; align-items:center; gap:10px;
+      padding:10px 12px; border-radius:10px;
+      border:1px solid var(--border); margin-bottom:8px;
+      background:rgba(255,255,255,.03);
+    }
+    .doc-item-row .item-info{flex:1; min-width:0}
+    .doc-item-row .item-name{font-size:14px; font-weight:600; color:var(--text)}
+    .doc-item-row .item-group{font-size:11px; color:var(--muted); margin-top:2px}
+    .doc-item-row .item-link{font-size:11px; color:var(--accent); word-break:break-all; margin-top:2px}
+    .doc-item-row .item-actions{display:flex; gap:4px; flex-shrink:0}
+    .doc-item-row .item-actions button{
+      background:none; border:1px solid var(--border); border-radius:8px;
+      padding:4px 10px; color:var(--muted); cursor:pointer; font-size:12px;
+    }
+    .doc-item-row .item-actions button:hover{background:rgba(255,255,255,.06)}
+    .doc-item-row .item-actions .del-btn:hover{border-color:var(--danger); color:var(--danger)}
+    .doc-item-row .item-actions .edit-btn:hover{border-color:var(--accent); color:var(--accent)}
+    .doc-manager-form{
+      display:grid; grid-template-columns:1fr 1fr; gap:10px;
+      margin-top:16px; padding-top:16px;
+      border-top:1px solid var(--border);
+    }
+    .doc-manager-form .full{grid-column:1 / -1}
+    .doc-manager-form label{font-size:12px; color:var(--muted); margin-bottom:4px; display:block}
+    .doc-manager-form input,.doc-manager-form select{
+      width:100%; padding:10px 12px; border-radius:10px;
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.04); color:var(--text);
+      outline:none; font-family:inherit; font-size:13px;
+    }
+    .doc-manager-form input:focus,.doc-manager-form select:focus{border-color:var(--accent)}
+    .doc-manager-form select option{background:var(--card); color:var(--text)}
+    .doc-manager-form .form-actions{display:flex; gap:8px; align-items:center; grid-column:1 / -1}
+    .doc-manager-form .form-msg{font-size:12px; color:var(--accent2); flex:1}
     /* User badge bar below nav */
     .user-info-bar{
       display:none;
@@ -315,6 +508,7 @@
     .member-card .role-executor{background:rgba(106,167,255,.2);color:var(--accent)}
     .member-card .role-it{background:rgba(124,240,193,.2);color:var(--accent2)}
     .member-card .role-director{background:rgba(255,217,61,.2);color:var(--warning)}
+    .member-card .role-profile{background:rgba(180,130,255,.2);color:#b482ff}
     .member-card .role-placeholder{background:rgba(255,255,255,.06);color:var(--muted);border:1px dashed var(--border)}
     .member-card .expand-icon{
       position:absolute; top:12px; right:12px;
@@ -478,6 +672,21 @@
             <div class="dropdown-content" id="doc-repo-menu" role="menu"></div>
           </div>
         </nav>
+        <div style="position:relative;display:inline-flex;align-items:center">
+          <button class="notif-bell" id="notif-bell" onclick="toggleNotifPanel(event)" title="Notifications">
+            &#128276;
+            <span class="badge" id="notif-badge">0</span>
+          </button>
+          <div class="notif-panel" id="notif-panel">
+            <div class="notif-panel-header">
+              <span>Notifications</span>
+              <button onclick="markAllNotifsRead()">Mark all read</button>
+            </div>
+            <div class="notif-list" id="notif-list">
+              <div class="notif-empty">No notifications</div>
+            </div>
+          </div>
+        </div>
         <a href="#" id="admin-panel-btn" role="button" style="color:var(--accent); font-weight:600;display:none;padding:6px 10px;font-size:13px;white-space:nowrap">&#128081; Admin</a>
         <button class="logout-btn" id="lock" type="button" style="display:none">&#128274; Logout</button>
       </div>
@@ -646,13 +855,12 @@
           <div><span class="role-tag role-executor">Executor</span></div>
         </div>
 
-        <!-- Placeholder: Accounting (Kế toán) -->
-        <div class="member-card-placeholder">
-          <div style="text-align:center;padding:16px">
-            <div style="font-size:28px;margin-bottom:6px;opacity:0.5">&#128202;</div>
-            <div>Accounting / Kế toán</div>
-            <div style="font-size:11px;margin-top:4px;opacity:0.6">Position open — future hire</div>
-          </div>
+        <!-- Lê Mậu Trí - Profile (Hồ Sơ Năng Lực) -->
+        <div class="member-card" onclick="showMemberModal('Lê Mậu Trí','Profile (Hồ Sơ Năng Lực)','role-profile','Manages employee profiles, competency records, and documentation for the entire organization.','Profile, Hồ Sơ Năng Lực')">
+          <div class="expand-icon">&#9432;</div>
+          <div class="avatar">&#128203;</div>
+          <h3 style="margin:0;font-size:15px">Lê Mậu Trí</h3>
+          <div><span class="role-tag role-profile">Profile</span></div>
         </div>
 
         <!-- Placeholder: Future role -->
@@ -736,6 +944,31 @@
     </div>
   </div>
 
+  <!-- Private Chat (Messenger-style) -->
+  <button class="private-chat-toggle" id="private-chat-toggle" type="button" onclick="togglePrivateChat()" aria-label="Toggle private chat">
+    &#128172;
+    <span class="badge" id="private-chat-badge">0</span>
+  </button>
+  <div id="private-chat-area">
+    <div class="private-chat-box">
+      <div class="private-chat-header" id="private-chat-header">
+        <button class="private-chat-back" id="private-chat-back" onclick="showPrivateConversations()">&#8592;</button>
+        <span id="private-chat-title">&#128172; Private Messages</span>
+        <button onclick="togglePrivateChat()">&times;</button>
+      </div>
+      <div id="private-chat-conversations" class="private-chat-conversations">
+        <div style="text-align:center;padding:20px;color:var(--muted)">Loading conversations...</div>
+      </div>
+      <div id="private-chat-messages" style="display:none">
+        <div class="private-chat-msgs" id="private-chat-msgs"></div>
+        <div class="private-chat-input">
+          <input id="private-chat-input" type="text" placeholder="Type a message..." onkeydown="if(event.key==='Enter')sendPrivateMsg()" />
+          <button onclick="sendPrivateMsg()">&#10148;</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     // === Configuration ===
     var API_BASE = "http://localhost:5000";
@@ -793,6 +1026,17 @@
       if (formEl) formEl.classList.add('active');
     }
 
+    // === Connection Check ===
+    async function checkBackendConnection() {
+      try {
+        var res = await fetch(API_BASE + '/api/health', { method: 'GET', signal: AbortSignal.timeout(3000) });
+        if (res.ok) return true;
+        return false;
+      } catch (e) {
+        return false;
+      }
+    }
+
     // === API Calls ===
     async function api(path, options) {
       if (!options) options = {};
@@ -802,13 +1046,28 @@
       }
       var token = getToken();
       if (token) headers['Authorization'] = 'Bearer ' + token;
-      var res = await fetch(API_BASE + path, {
-        method: options.method || 'GET',
-        headers: headers,
-        body: options.body || null
-      });
-      var data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Request failed');
+      var res;
+      try {
+        res = await fetch(API_BASE + path, {
+          method: options.method || 'GET',
+          headers: headers,
+          body: options.body || null
+        });
+      } catch (err) {
+        // Network error — backend might be offline
+        var isConnected = await checkBackendConnection();
+        if (!isConnected) {
+          throw new Error('Cannot reach the server. Please make sure the backend is running on ' + API_BASE);
+        }
+        throw new Error('Network error: ' + err.message);
+      }
+      var data;
+      try {
+        data = await res.json();
+      } catch (err) {
+        throw new Error('Invalid response from server (status ' + res.status + ').');
+      }
+      if (!res.ok) throw new Error(data.message || 'Request failed (status ' + res.status + ')');
       return data;
     }
 
@@ -1290,6 +1549,335 @@
       return false;
     }
 
+    // === Doc Manager Modal HTML (injected) ===
+    (function() {
+      var div = document.createElement('div');
+      div.innerHTML = `
+      <div class="doc-manager-overlay" id="doc-manager-overlay">
+        <div class="doc-manager-modal">
+          <button class="close-btn" onclick="closeDocManager()">&times;</button>
+          <h3>&#128196; Quản lý Danh Mục Tài Liệu</h3>
+          <div id="doc-manager-list"></div>
+          <div class="doc-manager-form">
+            <div class="full">
+              <label>Tên mục</label>
+              <input id="doc-form-name" type="text" placeholder="VD: Nhóm A, Quỹ ABC, VPS ..." />
+            </div>
+            <div class="full">
+              <label>Google Drive Link</label>
+              <input id="doc-form-link" type="url" placeholder="https://drive.google.com/..." />
+            </div>
+            <div>
+              <label>Danh mục (Category)</label>
+              <select id="doc-form-category">
+                <option value="Group">Group</option>
+                <option value="Fund">Fund</option>
+                <option value="VPS">VPS</option>
+                <option value="Profile">Profile</option>
+              </select>
+            </div>
+            <div class="full" style="margin-top:4px">
+              <label>Vai trò được phép xem (Role Access):</label>
+              <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px" id="doc-form-roles-container">
+                <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text);cursor:pointer">
+                  <input type="checkbox" class="doc-role-cb" value="ADMIN" checked> Admin
+                </label>
+                <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text);cursor:pointer">
+                  <input type="checkbox" class="doc-role-cb" value="DIRECTOR" checked> Giám Đốc
+                </label>
+                <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text);cursor:pointer">
+                  <input type="checkbox" class="doc-role-cb" value="IT" checked> IT
+                </label>
+                <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text);cursor:pointer">
+                  <input type="checkbox" class="doc-role-cb" value="ACCOUNTING" checked> Kế Toán
+                </label>
+                <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text);cursor:pointer">
+                  <input type="checkbox" class="doc-role-cb" value="LEADER"> Leader
+                </label>
+                <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text);cursor:pointer">
+                  <input type="checkbox" class="doc-role-cb" value="EMPLOYEE"> Thực Thi
+                </label>
+                <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text);cursor:pointer">
+                  <input type="checkbox" class="doc-role-cb" value="IMPLEMENTATION"> Implementation
+                </label>
+              </div>
+            </div>
+            <div style="display:flex;align-items:flex-end">
+              <button class="btn primary" id="doc-form-add-btn" onclick="addDocItem()" style="width:100%">+ Thêm mục</button>
+            </div>
+            <div class="form-actions">
+              <span class="form-msg" id="doc-form-msg"></span>
+              <button class="btn" onclick="closeDocManager()" style="padding:8px 20px">Đóng</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+      document.body.appendChild(div.firstElementChild);
+    })();
+
+    // === Document Repository Data (with 3 Categories: Group, Fund, VPS + Role-Based Access) ===
+    var DOC_GROUPS_KEY = "private_doc_groups";
+
+    // Full-access roles: ADMIN, DIRECTOR, IT, ACCOUNTING — can see ALL items
+    var FULL_ACCESS_ROLES = ["ADMIN", "DIRECTOR", "IT", "ACCOUNTING"];
+
+    function getDefaultDocItems() {
+      return [
+        { id: "d1", name: "Nhóm A", link: "https://drive.google.com/drive/folders/1", category: "Group", visibleRoles: ["ADMIN", "DIRECTOR", "IT", "ACCOUNTING", "LEADER", "EMPLOYEE", "IMPLEMENTATION"] },
+        { id: "d2", name: "Nhóm B", link: "https://drive.google.com/drive/folders/2", category: "Group", visibleRoles: ["ADMIN", "DIRECTOR", "IT", "ACCOUNTING", "LEADER", "EMPLOYEE"] },
+        { id: "d3", name: "Nhóm C", link: "https://drive.google.com/drive/folders/3", category: "Group", visibleRoles: ["ADMIN", "DIRECTOR", "IT", "ACCOUNTING", "LEADER"] },
+        { id: "d4", name: "Quỹ ABC", link: "https://drive.google.com/drive/folders/4", category: "Fund", visibleRoles: ["ADMIN", "DIRECTOR", "IT", "ACCOUNTING", "LEADER"] },
+        { id: "d5", name: "Quỹ XYZ", link: "https://drive.google.com/drive/folders/5", category: "Fund", visibleRoles: ["ADMIN", "DIRECTOR", "IT", "ACCOUNTING"] },
+        { id: "d6", name: "VPS Server 1", link: "https://drive.google.com/drive/folders/6", category: "VPS", visibleRoles: ["ADMIN", "DIRECTOR", "IT", "ACCOUNTING"] },
+        { id: "d7", name: "VPS Server 2", link: "https://drive.google.com/drive/folders/7", category: "VPS", visibleRoles: ["ADMIN", "DIRECTOR", "IT"] },
+        { id: "d8", name: "Profile Mẫu A", link: "https://drive.google.com/drive/folders/8", category: "Profile", visibleRoles: ["ADMIN", "DIRECTOR", "IT", "ACCOUNTING", "LEADER", "EMPLOYEE", "IMPLEMENTATION"] },
+        { id: "d9", name: "Profile Mẫu B", link: "https://drive.google.com/drive/folders/9", category: "Profile", visibleRoles: ["ADMIN", "DIRECTOR", "IT", "ACCOUNTING"] }
+      ];
+    }
+
+    function getDocItems() {
+      var stored = localStorage.getItem(DOC_GROUPS_KEY);
+      if (stored) {
+        try { return JSON.parse(stored); } catch(e) {}
+      }
+      var defaults = getDefaultDocItems();
+      localStorage.setItem(DOC_GROUPS_KEY, JSON.stringify(defaults));
+      return defaults;
+    }
+
+    function saveDocItems(items) {
+      localStorage.setItem(DOC_GROUPS_KEY, JSON.stringify(items));
+    }
+
+    function getRolesFromCheckboxes() {
+      var cbs = document.querySelectorAll('.doc-role-cb');
+      var roles = [];
+      for (var i = 0; i < cbs.length; i++) {
+        if (cbs[i].checked) roles.push(cbs[i].value);
+      }
+      return roles;
+    }
+
+    function setRoleCheckboxes(roles) {
+      var cbs = document.querySelectorAll('.doc-role-cb');
+      for (var i = 0; i < cbs.length; i++) {
+        cbs[i].checked = roles.indexOf(cbs[i].value) !== -1;
+      }
+    }
+
+    // Check if current user can see an item based on their role
+    function canUserSeeItem(item, userRole) {
+      if (!userRole) return false;
+      // Full-access roles see everything
+      if (FULL_ACCESS_ROLES.indexOf(userRole) !== -1) return true;
+      // For Leader, Employee (Thực Thi), Implementation — check visibleRoles
+      if (item.visibleRoles && item.visibleRoles.length > 0) {
+        return item.visibleRoles.indexOf(userRole) !== -1;
+      }
+      return false;
+    }
+
+    // Build dropdown menu from grouped items (with role filtering)
+    function buildDropdownMenu() {
+      var menu = document.getElementById('doc-repo-menu');
+      if (!menu) return;
+      var user = getUser();
+      var userRole = user ? user.role : null;
+      var items = getDocItems();
+      // Filter items by user role
+      var filtered = [];
+      for (var fi = 0; fi < items.length; fi++) {
+        if (canUserSeeItem(items[fi], userRole)) {
+          filtered.push(items[fi]);
+        }
+      }
+      // Group by category (Group, Fund, VPS, Profile)
+      var categoryOrder = ["Group", "Fund", "VPS", "Profile"];
+      var groups = {};
+      for (var i = 0; i < filtered.length; i++) {
+        var cat = filtered[i].category || "Group";
+        if (!groups[cat]) groups[cat] = [];
+        groups[cat].push(filtered[i]);
+      }
+      var html = '';
+      var isAdmin = userRole === 'ADMIN';
+      for (var ci = 0; ci < categoryOrder.length; ci++) {
+        var catName = categoryOrder[ci];
+        var catItems = groups[catName];
+        if (!catItems || catItems.length === 0) continue;
+        html += '<span class="group-label">' + catName + '</span>';
+        for (var ii = 0; ii < catItems.length; ii++) {
+          var it = catItems[ii];
+          html += '<a href="' + it.link + '" target="_blank" rel="noopener noreferrer">' +
+                  '<span class="gdrive-icon">&#128196;</span> ' + it.name;
+          // Show delete button only for admins
+          if (isAdmin) {
+            html += '<button class="delete-item" onclick="event.preventDefault();event.stopPropagation();deleteDocItem(\'' + it.id + '\')" title="Xóa">&times;</button>';
+          }
+          html += '</a>';
+        }
+      }
+      if (filtered.length === 0) {
+        html = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">Bạn chưa được cấp quyền xem mục nào.</div>';
+      }
+      // Show manage link only for admins
+      if (isAdmin) {
+        html += '<div class="manage-link" onclick="event.preventDefault();openDocManager()">&#9881; Quản lý danh mục</div>';
+      }
+      menu.innerHTML = html;
+    }
+
+    // Delete a document item
+    function deleteDocItem(id) {
+      if (!confirm('Xóa mục tài liệu này?')) return;
+      var items = getDocItems();
+      items = items.filter(function(it) { return it.id !== id; });
+      saveDocItems(items);
+      buildDropdownMenu();
+    }
+
+    // Open Doc Manager
+    function openDocManager() {
+      var overlay = document.getElementById('doc-manager-overlay');
+      if (overlay) {
+        overlay.classList.add('active');
+        renderDocManagerList();
+        document.getElementById('doc-form-name').value = '';
+        document.getElementById('doc-form-link').value = '';
+        document.getElementById('doc-form-category').value = 'Group';
+        // Reset roles: by default check full-access roles
+        setRoleCheckboxes(["ADMIN", "DIRECTOR", "IT", "ACCOUNTING"]);
+        document.getElementById('doc-form-msg').textContent = '';
+      }
+    }
+
+    function closeDocManager() {
+      var overlay = document.getElementById('doc-manager-overlay');
+      if (overlay) overlay.classList.remove('active');
+    }
+
+    // Render items in the manager
+    function renderDocManagerList() {
+      var container = document.getElementById('doc-manager-list');
+      if (!container) return;
+      var items = getDocItems();
+      if (items.length === 0) {
+        container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">Chưa có mục nào. Thêm mới bên dưới.</div>';
+        return;
+      }
+      var html = '';
+      for (var i = 0; i < items.length; i++) {
+        var it = items[i];
+        var rolesStr = (it.visibleRoles && it.visibleRoles.length > 0) ? it.visibleRoles.join(', ') : 'Tất cả';
+        html += '<div class="doc-item-row">' +
+                '<div class="item-info">' +
+                '<div class="item-name">' + it.name + '</div>' +
+                '<div class="item-group">' + (it.category || 'Group') + ' | Vai trò: ' + rolesStr + '</div>' +
+                '<div class="item-link">' + it.link + '</div>' +
+                '</div>' +
+                '<div class="item-actions">' +
+                '<button class="edit-btn" onclick="editDocItem(\'' + it.id + '\')">&#9998;</button>' +
+                '<button class="del-btn" onclick="deleteDocItemFromManager(\'' + it.id + '\')">&#10005;</button>' +
+                '</div>' +
+                '</div>';
+      }
+      container.innerHTML = html;
+    }
+
+    // Add a new document item
+    function addDocItem() {
+      var name = document.getElementById('doc-form-name').value.trim();
+      var link = document.getElementById('doc-form-link').value.trim();
+      var category = document.getElementById('doc-form-category').value;
+      var visibleRoles = getRolesFromCheckboxes();
+      var msg = document.getElementById('doc-form-msg');
+      if (!name || !link) {
+        msg.textContent = 'Vui lòng nhập tên và link.';
+        msg.style.color = 'var(--danger)';
+        return;
+      }
+      if (visibleRoles.length === 0) {
+        msg.textContent = 'Vui lòng chọn ít nhất một vai trò được xem.';
+        msg.style.color = 'var(--danger)';
+        return;
+      }
+      var items = getDocItems();
+      var newId = 'd' + Date.now();
+      items.push({ id: newId, name: name, link: link, category: category, visibleRoles: visibleRoles });
+      saveDocItems(items);
+      document.getElementById('doc-form-name').value = '';
+      document.getElementById('doc-form-link').value = '';
+      msg.textContent = 'Đã thêm mục thành công!';
+      msg.style.color = 'var(--accent2)';
+      renderDocManagerList();
+      buildDropdownMenu();
+    }
+
+    // Edit a document item (pre-fill form and scroll)
+    function editDocItem(id) {
+      var items = getDocItems();
+      var item = null;
+      for (var i = 0; i < items.length; i++) {
+        if (items[i].id === id) { item = items[i]; break; }
+      }
+      if (!item) return;
+      document.getElementById('doc-form-name').value = item.name;
+      document.getElementById('doc-form-link').value = item.link;
+      document.getElementById('doc-form-category').value = item.category || 'Group';
+      setRoleCheckboxes(item.visibleRoles || ["ADMIN", "DIRECTOR", "IT", "ACCOUNTING"]);
+      document.getElementById('doc-form-msg').textContent = 'Đang sửa: ' + item.name + '. Nhấn "Cập nhật" để lưu.';
+      document.getElementById('doc-form-msg').style.color = 'var(--accent)';
+
+      // Override add button temporarily
+      var addBtn = document.getElementById('doc-form-add-btn');
+      addBtn.innerHTML = '&#10003; Cập nhật';
+      addBtn.onclick = function() {
+        var newName = document.getElementById('doc-form-name').value.trim();
+        var newLink = document.getElementById('doc-form-link').value.trim();
+        var newCategory = document.getElementById('doc-form-category').value;
+        var newRoles = getRolesFromCheckboxes();
+        if (!newName || !newLink) {
+          document.getElementById('doc-form-msg').textContent = 'Vui lòng nhập tên và link.';
+          document.getElementById('doc-form-msg').style.color = 'var(--danger)';
+          return;
+        }
+        if (newRoles.length === 0) {
+          document.getElementById('doc-form-msg').textContent = 'Vui lòng chọn ít nhất một vai trò.';
+          document.getElementById('doc-form-msg').style.color = 'var(--danger)';
+          return;
+        }
+        items = getDocItems();
+        for (var j = 0; j < items.length; j++) {
+          if (items[j].id === id) {
+            items[j].name = newName;
+            items[j].link = newLink;
+            items[j].category = newCategory;
+            items[j].visibleRoles = newRoles;
+            break;
+          }
+        }
+        saveDocItems(items);
+        document.getElementById('doc-form-name').value = '';
+        document.getElementById('doc-form-link').value = '';
+        document.getElementById('doc-form-msg').textContent = 'Đã cập nhật!';
+        document.getElementById('doc-form-msg').style.color = 'var(--accent2)';
+        addBtn.innerHTML = '+ Thêm mục';
+        addBtn.onclick = addDocItem;
+        renderDocManagerList();
+        buildDropdownMenu();
+      };
+    }
+
+    // Delete from manager
+    function deleteDocItemFromManager(id) {
+      if (!confirm('Xóa mục tài liệu này?')) return;
+      var items = getDocItems();
+      items = items.filter(function(it) { return it.id !== id; });
+      saveDocItems(items);
+      renderDocManagerList();
+      buildDropdownMenu();
+    }
+
     // === Member Detail Modal ===
     function showMemberModal(name, role, roleClass, description, roleLabel) {
       var overlay = document.getElementById('member-modal');
@@ -1312,29 +1900,7 @@
       }
     }
 
-    // === Document Repository Dropdown ===
-
-    // --- CONFIGURABLE: Google Drive Links (edit these placeholders) ---
-    var DOC_FUND_LINKS = {
-      "Fund 1": "YOUR_GOOGLE_DRIVE_LINK_HERE_FUND_1",
-      "Fund 2": "YOUR_GOOGLE_DRIVE_LINK_HERE_FUND_2",
-      "Fund 3": "YOUR_GOOGLE_DRIVE_LINK_HERE_FUND_3"
-    };
-
-    // Build dropdown menu from the links object (scalable — just add more entries)
-    function buildDropdownMenu() {
-      var menu = document.getElementById('doc-repo-menu');
-      if (!menu) return;
-      var html = '';
-      for (var fundName in DOC_FUND_LINKS) {
-        var link = DOC_FUND_LINKS[fundName];
-        html += '<a href="' + link + '" target="_blank" rel="noopener noreferrer">' +
-                '<span class="gdrive-icon">&#128196;</span> ' + fundName +
-                '</a>';
-      }
-      menu.innerHTML = html;
-    }
-
+    // === Toggle Dropdown ===
     function toggleDropdown(event) {
       event.stopPropagation();
       var btn = event.currentTarget;
@@ -1371,8 +1937,277 @@
     // Build the dropdown menu on page load
     buildDropdownMenu();
 
+    // === Notification System (using backend API) ===
+    var NOTIF_KEY = "private_notifications";
+    var notifPollInterval = null;
+    var lastNotifCount = 0;
+
+    function getStoredNotifs() {
+      try { return JSON.parse(localStorage.getItem(NOTIF_KEY)) || []; } catch(e) { return []; }
+    }
+    function saveStoredNotifs(notifs) {
+      localStorage.setItem(NOTIF_KEY, JSON.stringify(notifs));
+    }
+
+    function addNotification(title, msg) {
+      var notifs = getStoredNotifs();
+      notifs.unshift({ id: Date.now(), title: title, msg: msg, time: new Date().toISOString(), read: false });
+      if (notifs.length > 50) notifs = notifs.slice(0, 50);
+      saveStoredNotifs(notifs);
+      updateNotifUI();
+    }
+
+    function updateNotifUI() {
+      var notifs = getStoredNotifs();
+      var badge = document.getElementById('notif-badge');
+      var list = document.getElementById('notif-list');
+      if (!badge || !list) return;
+      var unread = notifs.filter(function(n) { return !n.read; }).length;
+      if (unread > 0) {
+        badge.textContent = unread;
+        badge.classList.add('show');
+      } else {
+        badge.classList.remove('show');
+      }
+      if (notifs.length === 0) {
+        list.innerHTML = '<div class="notif-empty">No notifications</div>';
+        return;
+      }
+      var html = '';
+      for (var i = 0; i < notifs.length; i++) {
+        var n = notifs[i];
+        var cls = n.read ? '' : 'unread';
+        html += '<div class="notif-item ' + cls + '" onclick="markNotifRead(' + n.id + ')">' +
+                '<div class="notif-title">' + n.title + '</div>' +
+                '<div class="notif-msg">' + n.msg + '</div>' +
+                '<div class="notif-time">' + new Date(n.time).toLocaleString() + '</div>' +
+                '</div>';
+      }
+      list.innerHTML = html;
+    }
+
+    function markNotifRead(id) {
+      var notifs = getStoredNotifs();
+      for (var i = 0; i < notifs.length; i++) {
+        if (notifs[i].id === id) { notifs[i].read = true; break; }
+      }
+      saveStoredNotifs(notifs);
+      updateNotifUI();
+    }
+
+    function markAllNotifsRead() {
+      var notifs = getStoredNotifs();
+      for (var i = 0; i < notifs.length; i++) notifs[i].read = true;
+      saveStoredNotifs(notifs);
+      updateNotifUI();
+    }
+
+    function toggleNotifPanel(event) {
+      event.stopPropagation();
+      var panel = document.getElementById('notif-panel');
+      panel.classList.toggle('show');
+    }
+
+    // Close notification panel when clicking outside
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.notif-bell') && !e.target.closest('.notif-panel')) {
+        var panel = document.getElementById('notif-panel');
+        if (panel) panel.classList.remove('show');
+      }
+    });
+
+    // Poll for notifications from backend
+    function startNotifPolling() {
+      if (notifPollInterval) clearInterval(notifPollInterval);
+      notifPollInterval = setInterval(function() {
+        var user = getUser();
+        if (!user || !getToken()) return;
+        // Check for new pending registrations via pending-count
+        if (user.role === 'ADMIN') {
+          api('/api/admin/pending-count').then(function(result) {
+            if (result.count > 0 && result.count > lastNotifCount) {
+              addNotification('New Registration', result.count + ' user(s) pending approval.');
+            }
+            lastNotifCount = result.count;
+          }).catch(function(){});
+        }
+        // Check for new chat messages
+        api('/api/chat/messages?limit=1').then(function(messages) {
+          if (messages && messages.length > 0) {
+            var latest = messages[messages.length - 1];
+            if (latest.senderId !== user.id) {
+              // Check if we already have a notification for this message
+              var existing = getStoredNotifs();
+              var found = false;
+              for (var i = 0; i < existing.length; i++) {
+                if (existing[i].title === 'New Chat Message' && existing[i].msg.indexOf(latest.content.substring(0,20)) >= 0) {
+                  found = true; break;
+                }
+              }
+              if (!found) {
+                addNotification('New Chat Message', latest.senderName + ': ' + latest.content.substring(0, 80));
+              }
+            }
+          }
+        }).catch(function(){});
+      }, 10000);
+    }
+
+    // === Private Chat Functions ===
+    var privateChatPollInterval = null;
+    var privateChatUserId = null; // Current conversation partner ID
+
+    function togglePrivateChat() {
+      var area = document.getElementById('private-chat-area');
+      var toggle = document.getElementById('private-chat-toggle');
+      if (area.style.display === 'block') {
+        area.style.display = 'none';
+        toggle.innerHTML = '&#128172;<span class="badge" id="private-chat-badge">0</span>';
+        if (privateChatPollInterval) { clearInterval(privateChatPollInterval); privateChatPollInterval = null; }
+      } else {
+        area.style.display = 'block';
+        toggle.innerHTML = '&#10005;<span class="badge" id="private-chat-badge" style="display:none">0</span>';
+        showPrivateConversations();
+        if (privateChatPollInterval) clearInterval(privateChatPollInterval);
+        privateChatPollInterval = setInterval(loadPrivateConversations, 5000);
+      }
+    }
+
+    function showPrivateConversations() {
+      privateChatUserId = null;
+      document.getElementById('private-chat-back').style.display = 'none';
+      document.getElementById('private-chat-title').textContent = '\u{1F4AC} Private Messages';
+      document.getElementById('private-chat-conversations').style.display = 'block';
+      document.getElementById('private-chat-messages').style.display = 'none';
+      loadPrivateConversations();
+    }
+
+    async function loadPrivateConversations() {
+      var container = document.getElementById('private-chat-conversations');
+      if (!container) return;
+      try {
+        var convs = await api('/api/chat/conversations');
+        var user = getUser();
+        var html = '';
+        for (var i = 0; i < convs.length; i++) {
+          var c = convs[i];
+          var otherUser = c.participants.find(function(p) { return p.id !== user.id; }) || c.participants[0];
+          var avatarLetter = otherUser ? otherUser.name.charAt(0).toUpperCase() : '?';
+          var unreadCount = c.unreadCount || 0;
+          var lastMsg = c.lastMessage ? c.lastMessage.content : 'No messages yet';
+          var unreadClass = unreadCount > 0 ? 'show' : '';
+          html += '<div class="conv-item" onclick="openPrivateChat(' + otherUser.id + ',\'' + otherUser.name + '\')">' +
+                  '<div class="conv-avatar">' + avatarLetter + '</div>' +
+                  '<div class="conv-info">' +
+                  '<div class="conv-name">' + (otherUser ? otherUser.name : 'Unknown') + ' <span style="font-size:11px;color:var(--muted);opacity:.7">(' + (otherUser ? otherUser.role : '') + ')</span></div>' +
+                  '<div class="conv-preview">' + lastMsg + '</div>' +
+                  '</div>' +
+                  '<div class="conv-unread ' + unreadClass + '">' + (unreadCount > 0 ? unreadCount : '') + '</div>' +
+                  '</div>';
+        }
+        if (convs.length === 0) {
+          html = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px">No conversations yet.<br/><span style="font-size:11px">Send a message to start chatting.</span></div>';
+        }
+        container.innerHTML = html;
+      } catch (e) {
+        // silently ignore
+      }
+    }
+
+    var privateChatUserMap = {};
+
+    function openPrivateChat(userId, userName) {
+      privateChatUserId = userId;
+      document.getElementById('private-chat-back').style.display = 'inline-block';
+      document.getElementById('private-chat-title').textContent = '\u{1F4AC} ' + userName;
+      document.getElementById('private-chat-conversations').style.display = 'none';
+      document.getElementById('private-chat-messages').style.display = 'block';
+      loadPrivateMessages();
+      if (privateChatPollInterval) clearInterval(privateChatPollInterval);
+      privateChatPollInterval = setInterval(loadPrivateMessages, 3000);
+    }
+
+    async function loadPrivateMessages() {
+      if (!privateChatUserId) return;
+      var msgsContainer = document.getElementById('private-chat-msgs');
+      if (!msgsContainer) return;
+      try {
+        var messages = await api('/api/chat/private/' + privateChatUserId);
+        var user = getUser();
+        var html = '';
+        for (var i = 0; i < messages.length; i++) {
+          var m = messages[i];
+          var isOwn = (m.senderId === user.id);
+          var cls = isOwn ? 'own' : 'other';
+          html += '<div class="msg ' + cls + '">';
+          html += '<div>' + m.content + '</div>';
+          html += '<div class="meta">' + m.senderName + ' &middot; ' + new Date(m.createdAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) + '</div>';
+          html += '</div>';
+        }
+        if (messages.length === 0) {
+          html = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px">No messages yet. Say hello!</div>';
+        }
+        msgsContainer.innerHTML = html;
+        msgsContainer.scrollTop = msgsContainer.scrollHeight;
+      } catch (e) {
+        // silently ignore
+      }
+    }
+
+    async function sendPrivateMsg() {
+      var input = document.getElementById('private-chat-input');
+      var content = input.value.trim();
+      if (!content || !privateChatUserId) return;
+      input.value = '';
+      try {
+        await api('/api/chat/private/' + privateChatUserId, {
+          method: 'POST',
+          body: JSON.stringify({ content: content })
+        });
+        loadPrivateMessages();
+      } catch (err) {
+        alert('Error sending message: ' + err.message);
+      }
+    }
+
+    // === Enhance checkAuthState with notifications and private chat ===
+    var origCheckAuthState2 = checkAuthState;
+    checkAuthState = function() {
+      origCheckAuthState2();
+      var user = getUser();
+      var token = getToken();
+
+      // Show/hide notification bell based on auth
+      var notifBell = document.getElementById('notif-bell');
+      var notifPanel = document.getElementById('notif-panel');
+      if (user && token) {
+        if (notifBell) notifBell.style.display = 'inline-flex';
+        updateNotifUI();
+        startNotifPolling();
+      } else {
+        if (notifBell) notifBell.style.display = 'none';
+        if (notifPanel) notifPanel.classList.remove('show');
+        if (notifPollInterval) { clearInterval(notifPollInterval); notifPollInterval = null; }
+      }
+
+      // Show/hide private chat
+      var privateChatToggle = document.getElementById('private-chat-toggle');
+      var privateChatArea = document.getElementById('private-chat-area');
+      if (user && token && (user.status === 'APPROVED' || user.role === 'ADMIN')) {
+        privateChatToggle.style.display = 'block';
+      } else {
+        privateChatToggle.style.display = 'none';
+        privateChatArea.style.display = 'none';
+        if (privateChatPollInterval) { clearInterval(privateChatPollInterval); privateChatPollInterval = null; }
+      }
+
+      // Show/hide document repo manage link based on admin/role
+      buildDropdownMenu();
+    };
+
     // === Init ===
     document.getElementById('year').textContent = new Date().getFullYear();
+    updateNotifUI();
     checkAuthState();
   </script>
 </body>

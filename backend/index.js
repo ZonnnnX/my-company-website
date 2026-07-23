@@ -20,8 +20,35 @@ app.use(helmet({
     contentSecurityPolicy: false,
     crossOriginEmbedderPolicy: false,
 }));
+const allowedOrigins = [
+    "http://localhost:5000",
+    "http://localhost:3000",
+    "http://localhost:5500",
+    "http://127.0.0.1:5000",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5500",
+    "null", // Allow file:// protocol
+];
+if (process.env.CORS_ORIGIN) {
+    allowedOrigins.push(process.env.CORS_ORIGIN);
+}
 app.use(cors({
-    origin: process.env.CORS_ORIGIN || "http://localhost:5000",
+    origin: function (origin, callback) {
+        // Allow requests with no origin (mobile apps, curl, etc.)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.indexOf(origin) !== -1) {
+            return callback(null, true);
+        }
+        // Allow all localhost subdomains
+        if (origin.startsWith("http://localhost") || origin.startsWith("http://127.0.0.1")) {
+            return callback(null, true);
+        }
+        // Allow file:// protocol
+        if (origin === "null") {
+            return callback(null, true);
+        }
+        callback(null, true); // Allow all origins in development
+    },
     credentials: true
 }));
 app.use(express.json());
@@ -184,7 +211,7 @@ app.get("/api/admin/users", authenticateToken, requireAdmin, async (req, res) =>
     try {
         const users = await prisma.user.findMany({
             orderBy: { createdAt: "desc" },
-            select: { id: true, name: true, email: true, role: true, status: true, permissions: true, createdAt: true, updatedAt: true }
+            select: { id: true, name: true, email: true, role: true, status: true, group: true, permissions: true, createdAt: true, updatedAt: true }
         });
         return res.json(users);
     } catch (error) {
@@ -283,6 +310,244 @@ app.patch("/api/admin/users/:id/permissions", authenticateToken, requireAdmin, a
         return res.json({ message: `Permissions updated.`, user: updated });
     } catch (error) {
         console.error("Update permissions error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+// Update user group (admin only)
+app.patch("/api/admin/users/:id/group", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (isNaN(id)) {
+            return res.status(400).json({ message: "Invalid user ID." });
+        }
+
+        const { group } = req.body;
+        if (!group || typeof group !== "string" || group.trim().length === 0) {
+            return res.status(400).json({ message: "Group name is required." });
+        }
+
+        const user = await prisma.user.findUnique({ where: { id } });
+        if (!user) {
+            return res.status(404).json({ message: "User not found." });
+        }
+
+        const updated = await prisma.user.update({
+            where: { id },
+            data: { group: group.trim() },
+            select: { id: true, name: true, email: true, role: true, status: true, group: true, updatedAt: true }
+        });
+
+        return res.json({ message: `User group updated to ${group.trim()}.`, user: updated });
+    } catch (error) {
+        console.error("Update user group error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+// Get list of unique groups (admin only)
+app.get("/api/admin/groups", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const users = await prisma.user.findMany({
+            select: { group: true },
+            distinct: ["group"]
+        });
+        const groups = users.map(u => u.group).filter(Boolean);
+        return res.json(groups);
+    } catch (error) {
+        console.error("List groups error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+// === Notifications API ===
+
+// Get notifications for the current user
+app.get("/api/notifications", authenticateToken, async (req, res) => {
+    try {
+        const notifications = await prisma.notification.findMany({
+            where: { userId: req.user.id },
+            orderBy: { createdAt: "desc" },
+            take: 50
+        });
+        return res.json(notifications);
+    } catch (error) {
+        console.error("Get notifications error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+// Get unread notification count
+app.get("/api/notifications/unread-count", authenticateToken, async (req, res) => {
+    try {
+        const count = await prisma.notification.count({
+            where: { userId: req.user.id, read: false }
+        });
+        return res.json({ count });
+    } catch (error) {
+        console.error("Unread count error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+// Mark notification as read
+app.post("/api/notifications/mark-read", authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.body;
+        if (id) {
+            await prisma.notification.updateMany({
+                where: { id: parseInt(id), userId: req.user.id },
+                data: { read: true }
+            });
+        } else {
+            // Mark all as read
+            await prisma.notification.updateMany({
+                where: { userId: req.user.id, read: false },
+                data: { read: true }
+            });
+        }
+        return res.json({ message: "Notifications marked as read." });
+    } catch (error) {
+        console.error("Mark read error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+// === Private Chat API (1:1 Messenger-style) ===
+
+// Send a private message
+app.post("/api/chat/private", authenticateToken, async (req, res) => {
+    try {
+        const { receiverId, content } = req.body;
+        if (!receiverId || !content || typeof content !== "string" || content.trim().length === 0) {
+            return res.status(400).json({ message: "Receiver ID and content are required." });
+        }
+
+        const receiver = await prisma.user.findUnique({ where: { id: parseInt(receiverId) } });
+        if (!receiver) {
+            return res.status(404).json({ message: "Receiver not found." });
+        }
+
+        const message = await prisma.privateMessage.create({
+            data: {
+                senderId: req.user.id,
+                receiverId: parseInt(receiverId),
+                content: content.trim()
+            }
+        });
+
+        // Create notification for receiver
+        await prisma.notification.create({
+            data: {
+                userId: parseInt(receiverId),
+                type: "chat",
+                title: "New private message",
+                message: `${req.user.name} sent you a message: ${content.trim().substring(0, 50)}${content.trim().length > 50 ? '...' : ''}`
+            }
+        });
+
+        return res.status(201).json(message);
+    } catch (error) {
+        console.error("Send private message error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+// Get private messages between current user and another user
+app.get("/api/chat/private/:userId", authenticateToken, async (req, res) => {
+    try {
+        const otherUserId = parseInt(req.params.userId);
+        if (isNaN(otherUserId)) {
+            return res.status(400).json({ message: "Invalid user ID." });
+        }
+
+        const messages = await prisma.privateMessage.findMany({
+            where: {
+                OR: [
+                    { senderId: req.user.id, receiverId: otherUserId },
+                    { senderId: otherUserId, receiverId: req.user.id }
+                ]
+            },
+            orderBy: { createdAt: "asc" },
+            take: 100
+        });
+
+        // Mark received messages as read
+        await prisma.privateMessage.updateMany({
+            where: { senderId: otherUserId, receiverId: req.user.id, read: false },
+            data: { read: true }
+        });
+
+        return res.json(messages);
+    } catch (error) {
+        console.error("Get private messages error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+// Get conversations list for current user (who they've chatted with)
+app.get("/api/chat/private/conversations/list", authenticateToken, async (req, res) => {
+    try {
+        const sentMessages = await prisma.privateMessage.findMany({
+            where: { senderId: req.user.id },
+            select: { receiverId: true },
+            distinct: ["receiverId"]
+        });
+
+        const receivedMessages = await prisma.privateMessage.findMany({
+            where: { receiverId: req.user.id },
+            select: { senderId: true },
+            distinct: ["senderId"]
+        });
+
+        const userIds = new Set();
+        sentMessages.forEach(m => userIds.add(m.receiverId));
+        receivedMessages.forEach(m => userIds.add(m.senderId));
+
+        const userIdsArray = Array.from(userIds);
+        const conversations = [];
+
+        for (const uid of userIdsArray) {
+            const user = await prisma.user.findUnique({
+                where: { id: uid },
+                select: { id: true, name: true, email: true, role: true }
+            });
+            if (user) {
+                // Get last message
+                const lastMessage = await prisma.privateMessage.findFirst({
+                    where: {
+                        OR: [
+                            { senderId: req.user.id, receiverId: uid },
+                            { senderId: uid, receiverId: req.user.id }
+                        ]
+                    },
+                    orderBy: { createdAt: "desc" }
+                });
+
+                // Get unread count
+                const unreadCount = await prisma.privateMessage.count({
+                    where: { senderId: uid, receiverId: req.user.id, read: false }
+                });
+
+                conversations.push({
+                    user,
+                    lastMessage: lastMessage ? lastMessage.content : null,
+                    lastMessageAt: lastMessage ? lastMessage.createdAt : null,
+                    unreadCount
+                });
+            }
+        }
+
+        // Sort by last message time descending
+        conversations.sort((a, b) => {
+            if (!a.lastMessageAt) return 1;
+            if (!b.lastMessageAt) return -1;
+            return new Date(b.lastMessageAt) - new Date(a.lastMessageAt);
+        });
+
+        return res.json(conversations);
+    } catch (error) {
+        console.error("Get conversations error:", error);
         return res.status(500).json({ message: "Server error." });
     }
 });
