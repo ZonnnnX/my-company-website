@@ -663,6 +663,7 @@
         <nav class="nav-links" aria-label="Primary">
           <a href="#about">About</a>
           <a href="#services">Services</a>
+          <a href="#reports">📊 Báo Cáo</a>
           <a href="#team">Team</a>
           <a href="#contact">Contact</a>
           <div class="dropdown" id="doc-repo-dropdown">
@@ -906,6 +907,27 @@
           <div>
             <div style="color:var(--muted);font-size:13px">Response time</div>
             <div style="margin-top:4px;font-size:14px;color:var(--accent2)">Typically within 24 hours</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== REPORTS PAGE (Báo Cáo Tài Khoản) ===== -->
+    <div class="page-view" id="page-reports" style="display:none">
+      <div class="section-title">
+        <h2>&#128202; Báo Cáo Tài Khoản</h2>
+        <span>Quản lý báo cáo số lượng DIE của các tài khoản</span>
+      </div>
+      <div style="margin-top:18px">
+        <div id="reports-toolbar" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:13px;color:var(--muted)" id="reports-summary"></span>
+          </div>
+          <button class="btn primary" id="report-add-btn" onclick="openReportForm()" style="display:none">+ Thêm báo cáo</button>
+        </div>
+        <div class="card" style="padding:0;overflow-x:auto">
+          <div id="reports-list">
+            <div style="text-align:center;padding:30px;color:var(--muted)"><span class="spinner"></span> Đang tải dữ liệu...</div>
           </div>
         </div>
       </div>

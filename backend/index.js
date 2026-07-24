@@ -687,6 +687,174 @@ app.get("/api/chat/messages", authenticateToken, async (req, res) => {
     }
 });
 
+// === Reports API (Báo Cáo Tài Khoản) ===
+
+// Helper: check if user can view all reports
+function canViewAllReports(user) {
+    return ["ADMIN", "DIRECTOR", "IT", "ACCOUNTING"].indexOf(user.role) !== -1;
+}
+
+// Helper: check if user can manage reports (create/edit/delete) in their group
+function canManageReports(user) {
+    return ["ADMIN", "LEADER", "IMPLEMENTATION", "EMPLOYEE"].indexOf(user.role) !== -1;
+}
+
+// Get all report items (with role-based filtering)
+app.get("/api/reports", authenticateToken, async (req, res) => {
+    try {
+        const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+        if (!user) return res.status(404).json({ message: "User not found." });
+
+        let reports;
+        if (canViewAllReports(user)) {
+            // Director, IT, Accounting, Admin can see ALL reports
+            reports = await prisma.reportItem.findMany({
+                orderBy: { createdAt: "desc" },
+                include: {
+                    createdBy: { select: { id: true, name: true, role: true } }
+                }
+            });
+        } else if (canManageReports(user)) {
+            // Leader, Implementation, Employee can only see their own group's reports
+            reports = await prisma.reportItem.findMany({
+                where: {
+                    OR: [
+                        { group: user.group },
+                        { createdById: user.id }
+                    ]
+                },
+                orderBy: { createdAt: "desc" },
+                include: {
+                    createdBy: { select: { id: true, name: true, role: true } }
+                }
+            });
+        } else {
+            return res.status(403).json({ message: "You don't have permission to view reports." });
+        }
+
+        return res.json(reports);
+    } catch (error) {
+        console.error("Get reports error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+// Create a new report item
+app.post("/api/reports", authenticateToken, async (req, res) => {
+    try {
+        const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+        if (!user) return res.status(404).json({ message: "User not found." });
+
+        if (!canManageReports(user) && user.role !== "ADMIN") {
+            return res.status(403).json({ message: "You don't have permission to create reports." });
+        }
+
+        const { accountId, accountName, dieCount, group, category } = req.body;
+
+        if (!accountId || !accountName) {
+            return res.status(400).json({ message: "Account ID and Account Name are required." });
+        }
+
+        // Enforce group scoping: non-admin users can only create reports for their own group
+        const targetGroup = group || user.group;
+        if (user.role !== "ADMIN" && targetGroup !== user.group) {
+            return res.status(403).json({ message: "You can only create reports for your own group/fund." });
+        }
+
+        const report = await prisma.reportItem.create({
+            data: {
+                accountId: accountId.trim(),
+                accountName: accountName.trim(),
+                dieCount: parseInt(dieCount) || 0,
+                group: targetGroup,
+                category: category || "Group",
+                createdById: user.id
+            },
+            include: {
+                createdBy: { select: { id: true, name: true, role: true } }
+            }
+        });
+
+        return res.status(201).json(report);
+    } catch (error) {
+        console.error("Create report error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+// Update a report item
+app.put("/api/reports/:id", authenticateToken, async (req, res) => {
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (isNaN(id)) return res.status(400).json({ message: "Invalid report ID." });
+
+        const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+        if (!user) return res.status(404).json({ message: "User not found." });
+
+        const existing = await prisma.reportItem.findUnique({ where: { id } });
+        if (!existing) return res.status(404).json({ message: "Report not found." });
+
+        // Only creator, admin, or leader of the same group can edit
+        const canEdit = existing.createdById === user.id ||
+                        user.role === "ADMIN" ||
+                        (user.role === "LEADER" && existing.group === user.group);
+
+        if (!canEdit) {
+            return res.status(403).json({ message: "You don't have permission to edit this report." });
+        }
+
+        const { accountId, accountName, dieCount, group, category } = req.body;
+
+        const updated = await prisma.reportItem.update({
+            where: { id },
+            data: {
+                ...(accountId !== undefined && { accountId: accountId.trim() }),
+                ...(accountName !== undefined && { accountName: accountName.trim() }),
+                ...(dieCount !== undefined && { dieCount: parseInt(dieCount) }),
+                ...(group !== undefined && { group: group.trim() }),
+                ...(category !== undefined && { category })
+            },
+            include: {
+                createdBy: { select: { id: true, name: true, role: true } }
+            }
+        });
+
+        return res.json(updated);
+    } catch (error) {
+        console.error("Update report error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+// Delete a report item
+app.delete("/api/reports/:id", authenticateToken, async (req, res) => {
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (isNaN(id)) return res.status(400).json({ message: "Invalid report ID." });
+
+        const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+        if (!user) return res.status(404).json({ message: "User not found." });
+
+        const existing = await prisma.reportItem.findUnique({ where: { id } });
+        if (!existing) return res.status(404).json({ message: "Report not found." });
+
+        // Only creator, admin, or leader of the same group can delete
+        const canDelete = existing.createdById === user.id ||
+                          user.role === "ADMIN" ||
+                          (user.role === "LEADER" && existing.group === user.group);
+
+        if (!canDelete) {
+            return res.status(403).json({ message: "You don't have permission to delete this report." });
+        }
+
+        await prisma.reportItem.delete({ where: { id } });
+        return res.json({ message: "Report deleted." });
+    } catch (error) {
+        console.error("Delete report error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });

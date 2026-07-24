@@ -22,6 +22,7 @@ model User {
   notifications Notification[]
   sentMessages      PrivateMessage[] @relation("SentMessages")
   receivedMessages  PrivateMessage[] @relation("ReceivedMessages")
+  reports           ReportItem[]
 }
 
 model AccessCode {
@@ -65,5 +66,18 @@ model PrivateMessage {
   createdAt   DateTime @default(now())
   sender      User     @relation("SentMessages", fields: [senderId], references: [id])
   receiver    User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+}
+
+model ReportItem {
+  id          Int      @id @default(autoincrement())
+  accountId   String
+  accountName String
+  dieCount    Int      @default(0)
+  group       String   @default("General")
+  category    String   @default("Group")
+  createdById Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   User     @relation(fields: [createdById], references: [id])
 }
 
