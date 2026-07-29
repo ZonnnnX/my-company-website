@@ -993,7 +993,13 @@
 
   <script>
     // === Configuration ===
-    var API_BASE = "http://localhost:5000";
+    // Auto-detect API base URL: use the same origin as the page is served from
+    // This allows access via IP address, domain name, or localhost without hardcoding
+    var API_BASE = window.location.origin;
+    // Fallback for local development if running file:// protocol
+    if (API_BASE === "null" || window.location.protocol === "file:") {
+        API_BASE = "http://localhost:5000";
+    }
     var TOKEN_KEY = "private_access_token";
     var USER_KEY = "private_access_user";
 

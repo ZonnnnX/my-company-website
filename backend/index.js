@@ -10,8 +10,24 @@ require("dotenv").config();
 
 const prisma = new PrismaClient();
 const path = require("path");
+const os = require("os");
 
 const app = express();
+
+// === Auto-detect network IP for LAN access ===
+function getLocalIP() {
+    const interfaces = os.networkInterfaces();
+    for (const name of Object.keys(interfaces)) {
+        for (const iface of interfaces[name]) {
+            if (iface.family === "IPv4" && !iface.internal) {
+                return iface.address;
+            }
+        }
+    }
+    return "127.0.0.1";
+}
+
+const LOCAL_IP = getLocalIP();
 
 // Serve static files from parent directory (root project folder containing index.html)
 app.use(express.static(path.join(__dirname, "..")));
@@ -855,7 +871,11 @@ app.delete("/api/reports/:id", authenticateToken, async (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+app.listen(PORT, "0.0.0.0", () => {
+    console.log(`\n🚀 Server running!`);
+    console.log(`   Local:    http://localhost:${PORT}`);
+    console.log(`   Network:  http://${LOCAL_IP}:${PORT}`);
+    console.log(`   SQLite DB: backend/prisma/dev.db`);
+    console.log(`   Admin:    http://${LOCAL_IP}:${PORT} (then sign in)\n`);
 });
 
