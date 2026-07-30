@@ -1,0 +1,10 @@
+# Database
+prisma/**/*.db
+
+# Environment
+.env
+
+# Node
+node_modules/
+cloudflared-tunnel.bat
+../internal-app/

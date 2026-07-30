@@ -1,23 +1,29 @@
-# Domain Setup - Implementation Steps
+# Fixes Completed ✅
 
-## Mục tiêu: Mọi người có thể truy cập web mà không cần admin chạy code thủ công
+## Backend Fixes (backend/index.js)
 
-## Step 1: Fix API_BASE in frontend ✅
-- [ ] Sửa `index.html`: `API_BASE` dùng `window.location.origin` thay vì hardcode localhost
+### Fix 1: Private Chat Send Route ✅
+- Changed `POST /api/chat/private` → added `POST /api/chat/private/:userId`
+- receiverId taken from URL params, content from body
+- Also keeps backward compatibility with old format
 
-## Step 2: Fix backend to bind 0.0.0.0 ✅
-- [ ] Sửa `backend/index.js`: Bind vào `0.0.0.0` để truy cập từ mạng LAN
-- [ ] Thêm log hiển thị địa chỉ IP local
+### Fix 2: Conversations List Route ✅  
+- Added `GET /api/chat/conversations` for frontend compatibility
+- Returns format with `participants` array (matches frontend code)
 
-## Step 3: Tạo startup scripts ✅
-- [ ] Tạo `start.bat` (Windows) - double-click to run
-- [ ] Tạo `start.sh` (Mac/Linux)
-- [ ] Tạo `setup.bat` - Cài đặt dependencies + seed + start
+### Fix 3: Private Message Response Include senderName ✅
+- Included sender info (name, role) when returning messages
+- GET `/api/chat/private/:userId` now includes sender and receiver info
 
-## Step 4: Cấu hình PM2 (auto-restart nếu crash) ✅
-- [ ] Tạo `ecosystem.config.js`
+### Fix 4: Database URL ✅
+- Fixed `DATABASE_URL` path in `.env` from `file:./prisma/dev.db` → `file:./dev.db`
 
-## Step 5: Kiểm tra và xác nhận ✅
-- [ ] Kiểm tra backend chạy được chỉ với double-click
-- [ ] Kiểm tra frontend tự động kết nối đúng domain
+## Setup ✅
+- [x] Ran `npx prisma generate`
+- [x] Ran `node prisma/seed.js` (admin: Thangtan480@gmail.com / Sliverseven0)
+- [x] Server running on http://localhost:5000
+
+## Next Steps (when user requests)
+- [ ] Add report management UI in frontend
+- [ ] Fix internal-app PostgreSQL dependency
 

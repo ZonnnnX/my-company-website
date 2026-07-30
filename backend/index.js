@@ -7,12 +7,15 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { PrismaClient } = require("@prisma/client");
 require("dotenv").config();
+console.log("DATABASE_URL =", process.env.DATABASE_URL);
 
 const prisma = new PrismaClient();
+console.log("2. Prisma created");
 const path = require("path");
 const os = require("os");
 
 const app = express();
+console.log("1. App created");
 
 // === Auto-detect network IP for LAN access ===
 function getLocalIP() {
@@ -130,12 +133,18 @@ app.post("/api/auth/register", async (req, res) => {
             return res.status(400).json({ message: "Password must be at least 6 characters." });
         }
 
-        const existing = await prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } });
+        const existing = await prisma.user.findUnique({ 
+            where: { email: email.toLowerCase().trim() } 
+        });
+
         if (existing) {
-            return res.status(409).json({ message: "An account with this email already exists." });
+            return res.status(409).json({ 
+                message: "An account with this email already exists." 
+            });
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
+
         const user = await prisma.user.create({
             data: {
                 name: name.trim(),
@@ -148,13 +157,28 @@ app.post("/api/auth/register", async (req, res) => {
 
         return res.status(201).json({
             message: "Registration successful. Your account is pending admin approval.",
-            user: { id: user.id, name: user.name, email: user.email, role: user.role, status: user.status }
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                status: user.status
+            }
         });
+
     } catch (error) {
-        console.error("Register error:", error);
-        return res.status(500).json({ message: "Server error." });
+        console.error("======================");
+        console.error(error);
+        console.error(error.message);
+        console.error(error.stack);
+        console.error("======================");
+
+        return res.status(500).json({
+            message: "Server error."
+        });
     }
 });
+
 
 // Login
 app.post("/api/auth/login", async (req, res) => {
@@ -187,9 +211,16 @@ app.post("/api/auth/login", async (req, res) => {
             user: { id: user.id, name: user.name, email: user.email, role: user.role, status: user.status }
         });
     } catch (error) {
-        console.error("Login error:", error);
-        return res.status(500).json({ message: "Server error." });
-    }
+    console.error("========== LOGIN ERROR ==========");
+    console.error(error);
+    console.error(error.message);
+    console.error(error.stack);
+    console.error("=================================");
+
+    return res.status(500).json({
+        message: error.message
+    });
+}
 });
 
 // Get current user from token
@@ -368,14 +399,19 @@ app.get("/api/admin/groups", authenticateToken, requireAdmin, async (req, res) =
             select: { group: true },
             distinct: ["group"]
         });
+
         const groups = users.map(u => u.group).filter(Boolean);
+
         return res.json(groups);
+
     } catch (error) {
         console.error("List groups error:", error);
-        return res.status(500).json({ message: "Server error." });
+
+        return res.status(500).json({
+            message: "Server error."
+        });
     }
 });
-
 // === Notifications API ===
 
 // Get notifications for the current user
@@ -386,7 +422,9 @@ app.get("/api/notifications", authenticateToken, async (req, res) => {
             orderBy: { createdAt: "desc" },
             take: 50
         });
+
         return res.json(notifications);
+
     } catch (error) {
         console.error("Get notifications error:", error);
         return res.status(500).json({ message: "Server error." });
@@ -431,7 +469,62 @@ app.post("/api/notifications/mark-read", authenticateToken, async (req, res) => 
 
 // === Private Chat API (1:1 Messenger-style) ===
 
-// Send a private message
+// Send a private message to a specific user
+app.post("/api/chat/private/:userId", authenticateToken, async (req, res) => {
+    try {
+        const receiverId = parseInt(req.params.userId);
+        const { content } = req.body;
+
+        if (!receiverId || isNaN(receiverId)) {
+            return res.status(400).json({ message: "Invalid receiver ID." });
+        }
+
+        if (!content || typeof content !== "string" || content.trim().length === 0) {
+            return res.status(400).json({ message: "Message content is required." });
+        }
+
+        const receiver = await prisma.user.findUnique({ where: { id: receiverId } });
+        if (!receiver) {
+            return res.status(404).json({ message: "Receiver not found." });
+        }
+
+        // Get sender info for the response
+        const sender = await prisma.user.findUnique({ 
+            where: { id: req.user.id },
+            select: { id: true, name: true, role: true }
+        });
+
+        const message = await prisma.privateMessage.create({
+            data: {
+                senderId: req.user.id,
+                receiverId: receiverId,
+                content: content.trim()
+            }
+        });
+
+        // Create notification for receiver
+        await prisma.notification.create({
+            data: {
+                userId: receiverId,
+                type: "chat",
+                title: "New private message",
+                message: `${req.user.name} sent you a message: ${content.trim().substring(0, 50)}${content.trim().length > 50 ? '...' : ''}`
+            }
+        });
+
+        // Return message with sender info
+        return res.status(201).json({
+            ...message,
+            senderName: sender ? sender.name : req.user.name,
+            senderRole: sender ? sender.role : req.user.role
+        });
+    } catch (error) {
+        console.error("Send private message error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+// Keep backward compatibility for the old route format (without userId in URL)
 app.post("/api/chat/private", authenticateToken, async (req, res) => {
     try {
         const { receiverId, content } = req.body;
@@ -443,6 +536,11 @@ app.post("/api/chat/private", authenticateToken, async (req, res) => {
         if (!receiver) {
             return res.status(404).json({ message: "Receiver not found." });
         }
+
+        const sender = await prisma.user.findUnique({ 
+            where: { id: req.user.id },
+            select: { id: true, name: true, role: true }
+        });
 
         const message = await prisma.privateMessage.create({
             data: {
@@ -462,7 +560,11 @@ app.post("/api/chat/private", authenticateToken, async (req, res) => {
             }
         });
 
-        return res.status(201).json(message);
+        return res.status(201).json({
+            ...message,
+            senderName: sender ? sender.name : req.user.name,
+            senderRole: sender ? sender.role : req.user.role
+        });
     } catch (error) {
         console.error("Send private message error:", error);
         return res.status(500).json({ message: "Server error." });
@@ -485,7 +587,11 @@ app.get("/api/chat/private/:userId", authenticateToken, async (req, res) => {
                 ]
             },
             orderBy: { createdAt: "asc" },
-            take: 100
+            take: 100,
+            include: {
+                sender: { select: { id: true, name: true, role: true } },
+                receiver: { select: { id: true, name: true, role: true } }
+            }
         });
 
         // Mark received messages as read
@@ -494,14 +600,93 @@ app.get("/api/chat/private/:userId", authenticateToken, async (req, res) => {
             data: { read: true }
         });
 
-        return res.json(messages);
+        // Add senderName and senderRole to each message for frontend compatibility
+        const enriched = messages.map(m => ({
+            ...m,
+            senderName: m.sender.name,
+            senderRole: m.sender.role
+        }));
+
+        return res.json(enriched);
     } catch (error) {
         console.error("Get private messages error:", error);
         return res.status(500).json({ message: "Server error." });
     }
 });
 
-// Get conversations list for current user (who they've chatted with)
+// Frontend-compatible conversations list endpoint
+app.get("/api/chat/conversations", authenticateToken, async (req, res) => {
+    try {
+        const sentMessages = await prisma.privateMessage.findMany({
+            where: { senderId: req.user.id },
+            select: { receiverId: true },
+            distinct: ["receiverId"]
+        });
+
+        const receivedMessages = await prisma.privateMessage.findMany({
+            where: { receiverId: req.user.id },
+            select: { senderId: true },
+            distinct: ["senderId"]
+        });
+
+        const userIds = new Set();
+        sentMessages.forEach(m => userIds.add(m.receiverId));
+        receivedMessages.forEach(m => userIds.add(m.senderId));
+
+        const userIdsArray = Array.from(userIds);
+        const conversations = [];
+
+        for (const uid of userIdsArray) {
+            const otherUser = await prisma.user.findUnique({
+                where: { id: uid },
+                select: { id: true, name: true, email: true, role: true }
+            });
+            if (otherUser) {
+                // Get last message
+                const lastMessage = await prisma.privateMessage.findFirst({
+                    where: {
+                        OR: [
+                            { senderId: req.user.id, receiverId: uid },
+                            { senderId: uid, receiverId: req.user.id }
+                        ]
+                    },
+                    orderBy: { createdAt: "desc" }
+                });
+
+                // Get unread count
+                const unreadCount = await prisma.privateMessage.count({
+                    where: { senderId: uid, receiverId: req.user.id, read: false }
+                });
+
+                conversations.push({
+                    participants: [
+                        { id: req.user.id, name: req.user.name, role: req.user.role },
+                        { id: otherUser.id, name: otherUser.name, role: otherUser.role }
+                    ],
+                    lastMessage: lastMessage ? { 
+                        content: lastMessage.content, 
+                        createdAt: lastMessage.createdAt 
+                    } : null,
+                    unreadCount
+                });
+            }
+        }
+
+        // Sort by last message time descending
+        conversations.sort((a, b) => {
+            if (!a.lastMessage) return 1;
+            if (!b.lastMessage) return -1;
+            return new Date(b.lastMessage.createdAt) - new Date(a.lastMessage.createdAt);
+        });
+
+        return res.json(conversations);
+    } catch (error) {
+        console.error("Get conversations error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+// Get conversations list for current user (who they've chatted with) - old route
 app.get("/api/chat/private/conversations/list", authenticateToken, async (req, res) => {
     try {
         const sentMessages = await prisma.privateMessage.findMany({
@@ -871,6 +1056,7 @@ app.delete("/api/reports/:id", authenticateToken, async (req, res) => {
     }
 });
 
+console.log("3. About to listen on", PORT);
 app.listen(PORT, "0.0.0.0", () => {
     console.log(`\n🚀 Server running!`);
     console.log(`   Local:    http://localhost:${PORT}`);
@@ -878,4 +1064,3 @@ app.listen(PORT, "0.0.0.0", () => {
     console.log(`   SQLite DB: backend/prisma/dev.db`);
     console.log(`   Admin:    http://${LOCAL_IP}:${PORT} (then sign in)\n`);
 });
-
