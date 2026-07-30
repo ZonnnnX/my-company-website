@@ -804,7 +804,7 @@
       </div>
     </div>
 
-    <!-- ===== COMPANY (TEAM) PAGE ===== -->
+
     <div class="page-view" id="page-team" style="display:none">
       <div class="section-title"><h2>Company</h2><span>Our team &amp; organizational structure</span></div>
       <div class="grid" style="margin-top:18px">
@@ -1004,6 +1004,325 @@
     var TOKEN_KEY = "private_access_token";
     var USER_KEY = "private_access_user";
 
+    // === LOCAL STORAGE BACKEND (offline mode - no server needed) ===
+    var LOCAL_USERS_KEY = '_pvt_users_data';
+    var LOCAL_MSG_KEY = '_pvt_chat_data';
+    var LOCAL_PVT_MSG_KEY = '_pvt_pvt_msg_data';
+    var LOCAL_REPORTS_KEY = '_pvt_reports_data';
+
+    function getLocalUsers() {
+        try { return JSON.parse(localStorage.getItem(LOCAL_USERS_KEY)) || []; } catch(e) { return []; }
+    }
+    function saveLocalUsers(users) {
+        localStorage.setItem(LOCAL_USERS_KEY, JSON.stringify(users));
+    }
+    function getLocalMsgs() {
+        try { return JSON.parse(localStorage.getItem(LOCAL_MSG_KEY)) || []; } catch(e) { return []; }
+    }
+    function saveLocalMsgs(msgs) {
+        localStorage.setItem(LOCAL_MSG_KEY, JSON.stringify(msgs));
+    }
+    function getLocalPvtMsgs() {
+        try { return JSON.parse(localStorage.getItem(LOCAL_PVT_MSG_KEY)) || []; } catch(e) { return []; }
+    }
+    function saveLocalPvtMsgs(msgs) {
+        localStorage.setItem(LOCAL_PVT_MSG_KEY, JSON.stringify(msgs));
+    }
+    function getLocalReports() {
+        try { return JSON.parse(localStorage.getItem(LOCAL_REPORTS_KEY)) || []; } catch(e) { return []; }
+    }
+    function saveLocalReports(reports) {
+        localStorage.setItem(LOCAL_REPORTS_KEY, JSON.stringify(reports));
+    }
+
+    // Seed default admin on first run
+    (function() {
+        if (!localStorage.getItem('_pvt_seeded')) {
+            var users = [{
+                id: 1,
+                name: 'Admin',
+                email: 'Thangtan480@gmail.com',
+                password: 'Sliverseven0',
+                role: 'ADMIN',
+                status: 'APPROVED',
+                group: 'General',
+                permissions: '{}',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            }];
+            saveLocalUsers(users);
+            localStorage.setItem('_pvt_seeded', 'true');
+        }
+    })();
+
+    // Process API calls using localStorage (offline fallback)
+    async function localStorageApi(path, options) {
+        var method = (options && options.method) || 'GET';
+        var body = (options && options.body) ? JSON.parse(options.body) : {};
+        var token = getToken();
+        var currentUser = getUser();
+
+        // === AUTH ===
+        if (path === '/api/auth/login' && method === 'POST') {
+            var users = getLocalUsers();
+            var user = null;
+            for (var ui = 0; ui < users.length; ui++) {
+                if (users[ui].email === body.email.toLowerCase().trim()) { user = users[ui]; break; }
+            }
+            if (!user || body.password !== user.password) throw new Error('Invalid email or password.');
+            if (user.status === 'PENDING') throw new Error('Your account is pending approval.');
+            if (user.status === 'REJECTED') throw new Error('Your account has been rejected.');
+            var fakeJwt = 'local_' + user.id + '_' + btoa(JSON.stringify({ id: user.id, email: user.email, name: user.name, role: user.role, status: user.status }));
+            return { token: fakeJwt, user: { id: user.id, name: user.name, email: user.email, role: user.role, status: user.status } };
+        }
+
+        if (path === '/api/auth/register' && method === 'POST') {
+            var users = getLocalUsers();
+            for (var ui2 = 0; ui2 < users.length; ui2++) {
+                if (users[ui2].email === body.email.toLowerCase().trim()) throw new Error('An account with this email already exists.');
+            }
+            var maxId = 0;
+            for (var ui3 = 0; ui3 < users.length; ui3++) { if (users[ui3].id > maxId) maxId = users[ui3].id; }
+            var newUser = {
+                id: maxId + 1,
+                name: body.name.trim(),
+                email: body.email.toLowerCase().trim(),
+                password: body.password,
+                role: 'EMPLOYEE',
+                status: 'PENDING',
+                group: 'General',
+                permissions: '{}',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+            users.push(newUser);
+            saveLocalUsers(users);
+            return { message: 'Registration successful. Your account is pending admin approval.', user: { id: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role, status: newUser.status } };
+        }
+
+        if (path === '/api/auth/me' && method === 'GET') {
+            if (!token || !currentUser) throw new Error('Not authenticated');
+            var users = getLocalUsers();
+            for (var ui4 = 0; ui4 < users.length; ui4++) {
+                if (users[ui4].id === currentUser.id) return { id: users[ui4].id, name: users[ui4].name, email: users[ui4].email, role: users[ui4].role, status: users[ui4].status, createdAt: users[ui4].createdAt };
+            }
+            throw new Error('User not found.');
+        }
+
+        // === ADMIN ===
+        if (path === '/api/admin/pending-count' && method === 'GET') {
+            var users = getLocalUsers();
+            var count = 0;
+            for (var ui5 = 0; ui5 < users.length; ui5++) { if (users[ui5].status === 'PENDING') count++; }
+            return { count: count };
+        }
+
+        if (path === '/api/admin/users' && method === 'GET') {
+            var users = getLocalUsers();
+            var result = [];
+            for (var ui6 = 0; ui6 < users.length; ui6++) {
+                var u = users[ui6];
+                result.push({ id: u.id, name: u.name, email: u.email, role: u.role, status: u.status, group: u.group, permissions: u.permissions, createdAt: u.createdAt, updatedAt: u.updatedAt });
+            }
+            return result;
+        }
+
+        var statusMatch = path.match(/^\/api\/admin\/users\/(\d+)\/status$/);
+        if (statusMatch && method === 'PATCH') {
+            var users = getLocalUsers();
+            var sid = parseInt(statusMatch[1]);
+            for (var ui7 = 0; ui7 < users.length; ui7++) {
+                if (users[ui7].id === sid) {
+                    users[ui7].status = body.status;
+                    users[ui7].updatedAt = new Date().toISOString();
+                    saveLocalUsers(users);
+                    return { message: 'User ' + body.status.toLowerCase() + '.', user: users[ui7] };
+                }
+            }
+            throw new Error('User not found.');
+        }
+
+        var roleMatch = path.match(/^\/api\/admin\/users\/(\d+)\/role$/);
+        if (roleMatch && method === 'PATCH') {
+            var users = getLocalUsers();
+            var rid = parseInt(roleMatch[1]);
+            for (var ui8 = 0; ui8 < users.length; ui8++) {
+                if (users[ui8].id === rid) {
+                    users[ui8].role = body.role;
+                    users[ui8].updatedAt = new Date().toISOString();
+                    saveLocalUsers(users);
+                    return { message: 'User role updated to ' + body.role + '.', user: users[ui8] };
+                }
+            }
+            throw new Error('User not found.');
+        }
+
+        // === CHAT ===
+        if (path === '/api/chat/messages' && method === 'GET') {
+            var msgs = getLocalMsgs();
+            var out = [];
+            for (var mi = msgs.length - 1; mi >= 0; mi--) out.push(msgs[mi]);
+            return out;
+        }
+
+        if (path === '/api/chat/messages' && method === 'POST') {
+            var msgs = getLocalMsgs();
+            var maxMid = 0;
+            for (var mi2 = 0; mi2 < msgs.length; mi2++) { if (msgs[mi2].id > maxMid) maxMid = msgs[mi2].id; }
+            var msg = { id: maxMid + 1, senderId: currentUser.id, senderName: currentUser.name, senderRole: currentUser.role, content: body.content.trim(), createdAt: new Date().toISOString() };
+            msgs.push(msg);
+            saveLocalMsgs(msgs);
+            return msg;
+        }
+
+        // === PRIVATE CHAT ===
+        var sendPvtMatch = path.match(/^\/api\/chat\/private\/(\d+)$/);
+        if (sendPvtMatch && method === 'POST') {
+            var receiverId = parseInt(sendPvtMatch[1]);
+            var pmsgs = getLocalPvtMsgs();
+            var maxPid = 0;
+            for (var pi = 0; pi < pmsgs.length; pi++) { if (pmsgs[pi].id > maxPid) maxPid = pmsgs[pi].id; }
+            var pmsg = { id: maxPid + 1, senderId: currentUser.id, senderName: currentUser.name, receiverId: receiverId, content: body.content.trim(), read: false, createdAt: new Date().toISOString() };
+            pmsgs.push(pmsg);
+            saveLocalPvtMsgs(pmsgs);
+            return pmsg;
+        }
+
+        var getPvtMatch = path.match(/^\/api\/chat\/private\/(\d+)$/);
+        if (getPvtMatch && method === 'GET') {
+            var otherId = parseInt(getPvtMatch[1]);
+            var pmsgs = getLocalPvtMsgs();
+            var filtered = [];
+            for (var pi2 = 0; pi2 < pmsgs.length; pi2++) {
+                var m = pmsgs[pi2];
+                if ((m.senderId === currentUser.id && m.receiverId === otherId) || (m.senderId === otherId && m.receiverId === currentUser.id)) {
+                    filtered.push(m);
+                    if (m.senderId === otherId && m.receiverId === currentUser.id) m.read = true;
+                }
+            }
+            saveLocalPvtMsgs(pmsgs);
+            filtered.sort(function(a, b) { return new Date(a.createdAt) - new Date(b.createdAt); });
+            return filtered;
+        }
+
+        if ((path === '/api/chat/conversations' || path === '/api/chat/private/conversations/list') && method === 'GET') {
+            var allMsgs = getLocalPvtMsgs();
+            var allUsers = getLocalUsers();
+            var userIdSet = {};
+            for (var pi3 = 0; pi3 < allMsgs.length; pi3++) {
+                if (allMsgs[pi3].senderId === currentUser.id) userIdSet[allMsgs[pi3].receiverId] = true;
+                if (allMsgs[pi3].receiverId === currentUser.id) userIdSet[allMsgs[pi3].senderId] = true;
+            }
+            var convs = [];
+            var uidKeys = Object.keys(userIdSet);
+            for (var ki = 0; ki < uidKeys.length; ki++) {
+                var uid = parseInt(uidKeys[ki]);
+                var foundUser = null;
+                for (var ui9 = 0; ui9 < allUsers.length; ui9++) { if (allUsers[ui9].id === uid) { foundUser = allUsers[ui9]; break; } }
+                if (!foundUser) continue;
+                var userMsgs = [];
+                for (var pi4 = 0; pi4 < allMsgs.length; pi4++) {
+                    var m2 = allMsgs[pi4];
+                    if ((m2.senderId === currentUser.id && m2.receiverId === uid) || (m2.senderId === uid && m2.receiverId === currentUser.id)) {
+                        userMsgs.push(m2);
+                    }
+                }
+                var lastMsg = userMsgs.length > 0 ? userMsgs[userMsgs.length - 1] : null;
+                var unreadCount = 0;
+                for (var pi5 = 0; pi5 < allMsgs.length; pi5++) {
+                    if (allMsgs[pi5].senderId === uid && allMsgs[pi5].receiverId === currentUser.id && !allMsgs[pi5].read) unreadCount++;
+                }
+                convs.push({ user: { id: foundUser.id, name: foundUser.name, email: foundUser.email, role: foundUser.role }, participants: [{ id: currentUser.id }, { id: uid }], lastMessage: lastMsg, unreadCount: unreadCount });
+            }
+            convs.sort(function(a, b) { if (!a.lastMessage) return 1; if (!b.lastMessage) return -1; return new Date(b.lastMessage.createdAt) - new Date(a.lastMessage.createdAt); });
+            return convs;
+        }
+
+        // === REPORTS ===
+        if (path === '/api/reports' && method === 'GET') {
+            var reports = getLocalReports();
+            var allUsers = getLocalUsers();
+            var result = [];
+            for (var ri = 0; ri < reports.length; ri++) {
+                var rpt = reports[ri];
+                var creator = null;
+                for (var ui10 = 0; ui10 < allUsers.length; ui10++) { if (allUsers[ui10].id === rpt.createdById) { creator = { id: allUsers[ui10].id, name: allUsers[ui10].name, role: allUsers[ui10].role }; break; } }
+                result.push({ id: rpt.id, accountId: rpt.accountId, accountName: rpt.accountName, dieCount: rpt.dieCount, group: rpt.group, category: rpt.category, createdById: rpt.createdById, createdAt: rpt.createdAt, updatedAt: rpt.updatedAt, createdBy: creator });
+            }
+            return result;
+        }
+
+        if (path === '/api/reports' && method === 'POST') {
+            var reports = getLocalReports();
+            var maxRid = 0;
+            for (var ri2 = 0; ri2 < reports.length; ri2++) { if (reports[ri2].id > maxRid) maxRid = reports[ri2].id; }
+            var report = { id: maxRid + 1, accountId: body.accountId.trim(), accountName: body.accountName.trim(), dieCount: parseInt(body.dieCount) || 0, group: body.group || 'General', category: body.category || 'Group', createdById: currentUser.id, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+            reports.push(report);
+            saveLocalReports(reports);
+            var allUsers = getLocalUsers();
+            var creator = null;
+            for (var ui11 = 0; ui11 < allUsers.length; ui11++) { if (allUsers[ui11].id === currentUser.id) { creator = { id: allUsers[ui11].id, name: allUsers[ui11].name, role: allUsers[ui11].role }; break; } }
+            report.createdBy = creator;
+            return report;
+        }
+
+        var reportPutMatch = path.match(/^\/api\/reports\/(\d+)$/);
+        if (reportPutMatch && method === 'PUT') {
+            var reports = getLocalReports();
+            var reportId = parseInt(reportPutMatch[1]);
+            for (var ri3 = 0; ri3 < reports.length; ri3++) {
+                if (reports[ri3].id === reportId) {
+                    if (body.accountId !== undefined) reports[ri3].accountId = body.accountId.trim();
+                    if (body.accountName !== undefined) reports[ri3].accountName = body.accountName.trim();
+                    if (body.dieCount !== undefined) reports[ri3].dieCount = parseInt(body.dieCount);
+                    if (body.group !== undefined) reports[ri3].group = body.group.trim();
+                    if (body.category !== undefined) reports[ri3].category = body.category;
+                    reports[ri3].updatedAt = new Date().toISOString();
+                    saveLocalReports(reports);
+                    var allUsers = getLocalUsers();
+                    var creator = null;
+                    for (var ui12 = 0; ui12 < allUsers.length; ui12++) { if (allUsers[ui12].id === reports[ri3].createdById) { creator = { id: allUsers[ui12].id, name: allUsers[ui12].name, role: allUsers[ui12].role }; break; } }
+                    reports[ri3].createdBy = creator;
+                    return reports[ri3];
+                }
+            }
+            throw new Error('Report not found.');
+        }
+
+        var reportDelMatch = path.match(/^\/api\/reports\/(\d+)$/);
+        if (reportDelMatch && method === 'DELETE') {
+            var reports = getLocalReports();
+            var delId = parseInt(reportDelMatch[1]);
+            var newReports = [];
+            for (var ri4 = 0; ri4 < reports.length; ri4++) { if (reports[ri4].id !== delId) newReports.push(reports[ri4]); }
+            saveLocalReports(newReports);
+            return { message: 'Report deleted.' };
+        }
+
+        if (path === '/api/access-code/verify' && method === 'POST') {
+            return { valid: body.code === '1234', message: 'Access granted.' };
+        }
+
+        if (path === '/api/health' && method === 'GET') {
+            return { message: 'OK' };
+        }
+
+        if (path === '/api/admin/groups' && method === 'GET') {
+            var users = getLocalUsers();
+            var groups = [];
+            for (var ui13 = 0; ui13 < users.length; ui13++) { if (users[ui13].group && groups.indexOf(users[ui13].group) === -1) groups.push(users[ui13].group); }
+            return groups;
+        }
+
+        // Access codes list/create/delete
+        if (path === '/api/access-codes' && method === 'GET') return [];
+        if (path === '/api/access-codes' && method === 'POST') return { id: 1, code: body.code, label: body.label || '', isActive: true, maxUses: body.maxUses || 0, useCount: 0, createdAt: new Date().toISOString() };
+        var acDelMatch = path.match(/^\/api\/access-codes\/(\d+)$/);
+        if (acDelMatch && method === 'DELETE') return { message: 'Deleted.' };
+
+        throw new Error('API endpoint not available offline: ' + method + ' ' + path);
+    }
+
     // === DOM refs ===
     var gate = document.getElementById('gate');
     var content = document.getElementById('content');
@@ -1068,6 +1387,12 @@
 
     // === API Calls ===
     async function api(path, options) {
+      // Try localStorage backend first (works offline)
+      try {
+        return await localStorageApi(path, options);
+      } catch (e) {
+        // If localStorage backend throws, try real backend
+      }
       if (!options) options = {};
       var headers = { 'Content-Type': 'application/json' };
       if (options.headers) {
@@ -1889,37 +2214,12 @@
         document.getElementById('doc-form-name').value = '';
         document.getElementById('doc-form-link').value = '';
         document.getElementById('doc-form-msg').textContent = 'Đã cập nhật!';
-        document.getElementById('doc-form-msg').style.color = 'var(--accent2)';
+
         addBtn.innerHTML = '+ Thêm mục';
         addBtn.onclick = addDocItem;
         renderDocManagerList();
         buildDropdownMenu();
       };
-    }
-
-    // Delete from manager
-    function deleteDocItemFromManager(id) {
-      if (!confirm('Xóa mục tài liệu này?')) return;
-      var items = getDocItems();
-      items = items.filter(function(it) { return it.id !== id; });
-      saveDocItems(items);
-      renderDocManagerList();
-      buildDropdownMenu();
-    }
-
-    // === Member Detail Modal ===
-    function showMemberModal(name, role, roleClass, description, roleLabel) {
-      var overlay = document.getElementById('member-modal');
-      document.getElementById('modal-name').textContent = name;
-      document.getElementById('modal-role').textContent = roleLabel || role;
-      document.getElementById('modal-desc').textContent = description;
-      // Choose avatar based on role
-      var avatarEl = document.getElementById('modal-avatar');
-      if (roleClass === 'role-director') avatarEl.textContent = '\u{1F9D1}\u200D\u{1F3EB}';
-      else if (roleClass === 'role-it') avatarEl.textContent = '\u{1F4BB}';
-      else if (roleClass === 'role-executor') avatarEl.textContent = '\u{1F4AA}';
-      else avatarEl.textContent = '\u{1F9D1}';
-      overlay.classList.add('active');
     }
 
     function closeMemberModal(event) {

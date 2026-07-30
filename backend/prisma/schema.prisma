@@ -23,6 +23,7 @@ model User {
   sentMessages      PrivateMessage[] @relation("SentMessages")
   receivedMessages  PrivateMessage[] @relation("ReceivedMessages")
   reports           ReportItem[]
+  teamMembers       TeamMember[]
 }
 
 model AccessCode {
@@ -81,3 +82,18 @@ model ReportItem {
   createdBy   User     @relation(fields: [createdById], references: [id])
 }
 
+model TeamMember {
+  id          Int      @id @default(autoincrement())
+  name        String
+  position    String   @default("")
+  role        String   @default("EMPLOYEE")
+  description String   @default("")
+  avatarIcon  String   @default("&#128100;")
+  roleClass   String   @default("role-placeholder")
+  displayOrder Int     @default(0)
+  isActive    Boolean  @default(true)
+  createdById Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   User?    @relation(fields: [createdById], references: [id])
+}

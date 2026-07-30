@@ -847,6 +847,141 @@ app.delete("/api/access-codes/:id", authenticateToken, requireAdmin, async (req,
     }
 });
 
+// === Team Members API ===
+
+// Get all active team members (public - no auth required for viewing)
+app.get("/api/team-members", async (req, res) => {
+    try {
+        const members = await prisma.teamMember.findMany({
+            where: { isActive: true },
+            orderBy: { displayOrder: "asc" }
+        });
+        return res.json(members);
+    } catch (error) {
+        console.error("Get team members error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+// Get all team members including inactive (admin only)
+app.get("/api/team-members/all", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const members = await prisma.teamMember.findMany({
+            orderBy: { displayOrder: "asc" }
+        });
+        return res.json(members);
+    } catch (error) {
+        console.error("Get all team members error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+// Create a new team member (admin only)
+app.post("/api/team-members", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { name, position, role, description, avatarIcon, roleClass, displayOrder } = req.body;
+        if (!name || typeof name !== "string" || name.trim().length === 0) {
+            return res.status(400).json({ message: "Name is required." });
+        }
+
+        const member = await prisma.teamMember.create({
+            data: {
+                name: name.trim(),
+                position: position || "",
+                role: role || "EMPLOYEE",
+                description: description || "",
+                avatarIcon: avatarIcon || "&#128100;",
+                roleClass: roleClass || "role-placeholder",
+                displayOrder: parseInt(displayOrder) || 0,
+                createdById: req.user.id
+            }
+        });
+        return res.status(201).json(member);
+    } catch (error) {
+        console.error("Create team member error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+// Update a team member (admin only)
+app.put("/api/team-members/:id", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (isNaN(id)) return res.status(400).json({ message: "Invalid ID." });
+
+        const existing = await prisma.teamMember.findUnique({ where: { id } });
+        if (!existing) return res.status(404).json({ message: "Team member not found." });
+
+        const { name, position, role, description, avatarIcon, roleClass, displayOrder, isActive } = req.body;
+
+        const updated = await prisma.teamMember.update({
+            where: { id },
+            data: {
+                ...(name !== undefined && { name: name.trim() }),
+                ...(position !== undefined && { position }),
+                ...(role !== undefined && { role }),
+                ...(description !== undefined && { description }),
+                ...(avatarIcon !== undefined && { avatarIcon }),
+                ...(roleClass !== undefined && { roleClass }),
+                ...(displayOrder !== undefined && { displayOrder: parseInt(displayOrder) }),
+                ...(isActive !== undefined && { isActive })
+            }
+        });
+        return res.json(updated);
+    } catch (error) {
+        console.error("Update team member error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+// Delete a team member (admin only)
+app.delete("/api/team-members/:id", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (isNaN(id)) return res.status(400).json({ message: "Invalid ID." });
+
+        const existing = await prisma.teamMember.findUnique({ where: { id } });
+        if (!existing) return res.status(404).json({ message: "Team member not found." });
+
+        await prisma.teamMember.delete({ where: { id } });
+        return res.json({ message: "Team member deleted." });
+    } catch (error) {
+        console.error("Delete team member error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+// Seed default team members (admin only) - one-time setup
+app.post("/api/team-members/seed", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const count = await prisma.teamMember.count();
+        if (count > 0) {
+            return res.json({ message: "Team members already seeded.", count });
+        }
+
+        const defaults = [
+            { name: "Daniel Nguyễn", position: "Founder & Director", role: "DIRECTOR", description: "Oversees all company operations, strategy, and growth. With years of industry experience, Daniel leads the organization with vision and dedication.", avatarIcon: "&#128100;", roleClass: "role-director", displayOrder: 0 },
+            { name: "Công", position: "IT", role: "IT", description: "Responsible for maintaining IT infrastructure, systems administration, and technical support across the organization.", avatarIcon: "&#128187;", roleClass: "role-it", displayOrder: 1 },
+            { name: "Tấn Thắng", position: "IT", role: "IT", description: "Handles network operations, system security, and technology solutions to keep our digital environment running smoothly.", avatarIcon: "&#128187;", roleClass: "role-it", displayOrder: 2 },
+            { name: "Trọng Việt", position: "Executor (Người thực thi)", role: "EMPLOYEE", description: "Responsible for executing key projects and operational tasks. Ensures timely delivery and quality output.", avatarIcon: "&#128170;", roleClass: "role-executor", displayOrder: 3 },
+            { name: "Thanh Trai", position: "Executor (Người thực thi)", role: "EMPLOYEE", description: "Carries out operational tasks and project execution with precision and efficiency.", avatarIcon: "&#128170;", roleClass: "role-executor", displayOrder: 4 },
+            { name: "Phước Bình", position: "Executor (Người thực thi)", role: "EMPLOYEE", description: "Supports project execution and operational workflows. Dedicated to achieving team goals.", avatarIcon: "&#128170;", roleClass: "role-executor", displayOrder: 5 },
+            { name: "Nguyễn Thái", position: "Accounting", role: "ACCOUNTING", description: "Manages financial records, accounting operations, and financial reporting for the entire organization.", avatarIcon: "&#128203;", roleClass: "role-accounting", displayOrder: 6 }
+        ];
+
+        for (const member of defaults) {
+            await prisma.teamMember.create({
+                data: { ...member, createdById: req.user.id }
+            });
+        }
+
+        return res.status(201).json({ message: "Default team members seeded.", count: defaults.length });
+    } catch (error) {
+        console.error("Seed team members error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
 // === Chat API ===
 
 // Post a chat message (authenticated users)
