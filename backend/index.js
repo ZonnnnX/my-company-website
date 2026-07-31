@@ -7,19 +7,9 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { PrismaClient } = require("@prisma/client");
 require("dotenv").config();
-console.log("DATABASE_URL =", process.env.DATABASE_URL);
 
-const prisma = new PrismaClient();
-console.log("2. Prisma created");
-const path = require("path");
-const os = require("os");
 
-const app = express();
-console.log("1. App created");
 
-// === Auto-detect network IP for LAN access ===
-function getLocalIP() {
-    const interfaces = os.networkInterfaces();
     for (const name of Object.keys(interfaces)) {
         for (const iface of interfaces[name]) {
             if (iface.family === "IPv4" && !iface.internal) {
