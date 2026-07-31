@@ -8,14 +8,8 @@ const jwt = require("jsonwebtoken");
 const { PrismaClient } = require("@prisma/client");
 require("dotenv").config();
 
-const prisma = new PrismaClient();
-const path = require("path");
-const os = require("os");
 
-const app = express();
 
-function getLocalIP() {
-    const interfaces = os.networkInterfaces();
     for (const name of Object.keys(interfaces)) {
         for (const iface of interfaces[name]) {
             if (iface.family === "IPv4" && !iface.internal) {

@@ -24,6 +24,7 @@ model User {
   receivedMessages  PrivateMessage[] @relation("ReceivedMessages")
   reports           ReportItem[]
   teamMembers       TeamMember[]
+  documentItems     DocumentItem[]
 }
 
 model AccessCode {
@@ -92,6 +93,19 @@ model TeamMember {
   roleClass   String   @default("role-placeholder")
   displayOrder Int     @default(0)
   isActive    Boolean  @default(true)
+  createdById Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   User?    @relation(fields: [createdById], references: [id])
+}
+
+model DocumentItem {
+  id          Int      @id @default(autoincrement())
+  name        String
+  link        String
+  category    String   @default("Group")
+  visibleRoles String  @default("[\"ADMIN\",\"DIRECTOR\",\"IT\",\"ACCOUNTING\"]")
+  displayOrder Int     @default(0)
   createdById Int?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
