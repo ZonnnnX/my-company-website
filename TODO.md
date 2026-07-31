@@ -1,8 +1,10 @@
-# Plan: Lưu dữ liệu admin sửa vào database (SQLite)
+# Plan: Admin Team Management (CRUD)
 
 ## Steps
-- [ ] 1. Sửa backend/index.js - Thêm code bị thiếu (const app, path, os, getLocalIP)
-- [ ] 2. Thêm model DocumentItem vào prisma/schema.prisma
-- [ ] 3. Thêm Document API endpoints vào backend/index.js
-- [ ] 4. Sửa index.html - Load/save documents từ API thay vì localStorage
-- [ ] 5. Chạy migration + seed
+- [x] 1. index.html - Replace hardcoded team member cards with dynamic container
+- [x] 2. index.html - Add Team Manager Modal HTML (admin UI for CRUD)
+- [x] 3. index.html - Add localStorageApi handlers for team members (offline mode)
+- [x] 4. index.html - Add Team Manager JS functions (load, render, add, edit, delete)
+- [x] 5. index.html - Seed default team members from admin UI
+- [x] 6. Test the implementation
+

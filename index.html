@@ -805,75 +805,18 @@
     </div>
 
 
-    <div class="page-view" id="page-team" style="display:none">
-      <div class="section-title"><h2>Company</h2><span>Our team &amp; organizational structure</span></div>
-      <div class="grid" style="margin-top:18px">
-
-        <!-- Daniel Nguyễn - Founder & Director -->
-        <div class="member-card" onclick="showMemberModal('Daniel Nguyễn','Founder &amp; Director','role-director','Oversees all company operations, strategy, and growth. With years of industry experience, Daniel leads the organization with vision and dedication.','Founder, Director')">
-          <div class="expand-icon">&#9432;</div>
-          <div class="avatar">&#128100;</div>
-          <h3 style="margin:0;font-size:15px">Daniel Nguyễn</h3>
-          <div><span class="role-tag role-director">Founder &amp; Director</span></div>
+<div class="page-view" id="page-team" style="display:none">
+      <div class="section-title">
+        <h2>Company</h2>
+        <span>Our team &amp; organizational structure</span>
+      </div>
+      <div id="team-toolbar" style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px">
+        <button class="btn primary" id="team-manage-btn" onclick="openTeamManager()" style="display:none;font-size:13px;padding:8px 14px">&#9881; Quản lý Team</button>
+      </div>
+      <div class="grid" id="team-members-container" style="margin-top:18px">
+        <div style="text-align:center;padding:30px;color:var(--muted);grid-column:1/-1">
+          <span class="spinner"></span> Loading team members...
         </div>
-
-        <!-- Công - IT -->
-        <div class="member-card" onclick="showMemberModal('Công','IT/','role-it','Responsible for maintaining IT infrastructure, systems administration, and technical support across the organization.','IT')">
-          <div class="expand-icon">&#9432;</div>
-          <div class="avatar">&#128187;</div>
-          <h3 style="margin:0;font-size:15px">Công</h3>
-          <div><span class="role-tag role-it">IT</span></div>
-        </div>
-
-        <!-- Tấn Thắng - IT -->
-        <div class="member-card" onclick="showMemberModal('Tấn Thắng','IT/','role-it','Handles network operations, system security, and technology solutions to keep our digital environment running smoothly.','IT')">
-          <div class="expand-icon">&#9432;</div>
-          <div class="avatar">&#128187;</div>
-          <h3 style="margin:0;font-size:15px">Tấn Thắng</h3>
-          <div><span class="role-tag role-it">IT</span></div>
-        </div>
-
-        <!-- Trọng Việt - Executor -->
-        <div class="member-card" onclick="showMemberModal('Trọng Việt','Executor (Người thực thi)','role-executor','Responsible for executing key projects and operational tasks. Ensures timely delivery and quality output.','Executor, Người thực thi')">
-          <div class="expand-icon">&#9432;</div>
-          <div class="avatar">&#128170;</div>
-          <h3 style="margin:0;font-size:15px">Trọng Việt</h3>
-          <div><span class="role-tag role-executor">Executor</span></div>
-        </div>
-
-        <!-- Thanh Trai - Executor -->
-        <div class="member-card" onclick="showMemberModal('Thanh Trai','Executor (Người thực thi)','role-executor','Carries out operational tasks and project execution with precision and efficiency.','Executor, Người thực thi')">
-          <div class="expand-icon">&#9432;</div>
-          <div class="avatar">&#128170;</div>
-          <h3 style="margin:0;font-size:15px">Thanh Trai</h3>
-          <div><span class="role-tag role-executor">Executor</span></div>
-        </div>
-
-        <!-- Phước Bình - Executor -->
-        <div class="member-card" onclick="showMemberModal('Phước Bình','Executor (Người thực thi)','role-executor','Supports project execution and operational workflows. Dedicated to achieving team goals.','Executor, Người thực thi')">
-          <div class="expand-icon">&#9432;</div>
-          <div class="avatar">&#128170;</div>
-          <h3 style="margin:0;font-size:15px">Phước Bình</h3>
-          <div><span class="role-tag role-executor">Executor</span></div>
-        </div>
-
-        <!-- Nguyễn Thái - Accounting -->
-        <div class="member-card" onclick="showMemberModal('Nguyễn Thái','Accounting','role-accounting','Manages financial records, accounting operations, and financial reporting for the entire organization.','Accounting')">
-          <div class="expand-icon">&#9432;</div>
-          <div class="avatar">&#128203;</div>
-          <h3 style="margin:0;font-size:15px">Nguyễn Thái</h3>
-          <div><span class="role-tag role-accounting">Accounting</span></div>
-        </div>
-
-        <!-- Placeholder: Future role -->
-        <div class="member-card-placeholder">
-          <div style="text-align:center;padding:16px">
-            <div style="font-size:28px;margin-bottom:6px;opacity:0.5">&#128101;</div>
-            <div>Additional role</div>
-            <div style="font-size:11px;margin-top:4px;opacity:0.6">Position open — future hire</div>
-          </div>
-        </div>
-
       </div>
     </div>
 
@@ -1969,6 +1912,411 @@
       document.body.appendChild(div.firstElementChild);
     })();
 
+    // === Team Manager Modal HTML (injected) ===
+    (function() {
+      var div = document.createElement('div');
+      div.innerHTML = `
+      <div class="doc-manager-overlay" id="team-manager-overlay">
+        <div class="doc-manager-modal">
+          <button class="close-btn" onclick="closeTeamManager()">&times;</button>
+          <h3>&#128101; Quản lý Thành Viên Team</h3>
+          <div id="team-manager-list"></div>
+          <div class="doc-manager-form">
+            <div class="full">
+              <label>Tên thành viên</label>
+              <input id="team-form-name" type="text" placeholder="VD: Nguyễn Văn A" />
+            </div>
+            <div>
+              <label>Chức vụ (Position)</label>
+              <input id="team-form-position" type="text" placeholder="VD: IT, Accounting..." />
+            </div>
+            <div>
+              <label>Biểu tượng (Avatar)</label>
+              <select id="team-form-avatar">
+                <option value="&#128100;">&#128100; Person</option>
+                <option value="&#128187;">&#128187; IT</option>
+                <option value="&#128200;">&#128200; Report</option>
+                <option value="&#128170;">&#128170; Executor</option>
+                <option value="&#128203;">&#128203; Accounting</option>
+                <option value="&#127891;">&#127891; Training</option>
+                <option value="&#128295;">&#128295; Support</option>
+              </select>
+            </div>
+            <div>
+              <label>Nhóm vai trò (Role Class)</label>
+              <select id="team-form-roleclass">
+                <option value="role-director">Giám đốc (Director)</option>
+                <option value="role-it">IT</option>
+                <option value="role-executor">Thực thi (Executor)</option>
+                <option value="role-accounting">Kế toán (Accounting)</option>
+                <option value="role-profile">Profile</option>
+                <option value="role-placeholder">Khác (Placeholder)</option>
+              </select>
+            </div>
+            <div class="full">
+              <label>Mô tả</label>
+              <textarea id="team-form-description" rows="3" placeholder="Mô tả về thành viên..." style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text);outline:none;resize:vertical;font-family:inherit;font-size:13px"></textarea>
+            </div>
+            <div class="full">
+              <label>Thứ tự hiển thị (0 = đầu tiên)</label>
+              <input id="team-form-order" type="number" value="0" min="0" style="width:80px" />
+            </div>
+            <div style="display:flex;align-items:flex-end">
+              <button class="btn primary" id="team-form-add-btn" onclick="addTeamMember()" style="width:100%">+ Thêm thành viên</button>
+            </div>
+            <div class="form-actions">
+              <span class="form-msg" id="team-form-msg"></span>
+              <button class="btn" onclick="closeTeamManager()" style="padding:8px 20px">Đóng</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+      document.body.appendChild(div.firstElementChild);
+    })();
+
+    // === Team Members Data (localStorage fallback) ===
+    var LOCAL_TEAM_KEY = '_pvt_team_data';
+
+    function getDefaultTeamMembers() {
+      return [
+        { id: 1, name: "Daniel Nguyễn", position: "Founder & Director", role: "DIRECTOR", description: "Oversees all company operations, strategy, and growth. With years of industry experience, Daniel leads the organization with vision and dedication.", avatarIcon: "&#128100;", roleClass: "role-director", displayOrder: 0, isActive: true },
+        { id: 2, name: "Công", position: "IT", role: "IT", description: "Responsible for maintaining IT infrastructure, systems administration, and technical support across the organization.", avatarIcon: "&#128187;", roleClass: "role-it", displayOrder: 1, isActive: true },
+        { id: 3, name: "Tấn Thắng", position: "IT", role: "IT", description: "Handles network operations, system security, and technology solutions to keep our digital environment running smoothly.", avatarIcon: "&#128187;", roleClass: "role-it", displayOrder: 2, isActive: true },
+        { id: 4, name: "Trọng Việt", position: "Executor (Người thực thi)", role: "EMPLOYEE", description: "Responsible for executing key projects and operational tasks. Ensures timely delivery and quality output.", avatarIcon: "&#128170;", roleClass: "role-executor", displayOrder: 3, isActive: true },
+        { id: 5, name: "Thanh Trai", position: "Executor (Người thực thi)", role: "EMPLOYEE", description: "Carries out operational tasks and project execution with precision and efficiency.", avatarIcon: "&#128170;", roleClass: "role-executor", displayOrder: 4, isActive: true },
+        { id: 6, name: "Phước Bình", position: "Executor (Người thực thi)", role: "EMPLOYEE", description: "Supports project execution and operational workflows. Dedicated to achieving team goals.", avatarIcon: "&#128170;", roleClass: "role-executor", displayOrder: 5, isActive: true },
+        { id: 7, name: "Nguyễn Thái", position: "Accounting", role: "ACCOUNTING", description: "Manages financial records, accounting operations, and financial reporting for the entire organization.", avatarIcon: "&#128203;", roleClass: "role-accounting", displayOrder: 6, isActive: true }
+      ];
+    }
+
+    function getLocalTeamMembers() {
+      var stored = localStorage.getItem(LOCAL_TEAM_KEY);
+      if (stored) {
+        try { return JSON.parse(stored); } catch(e) {}
+      }
+      var defaults = getDefaultTeamMembers();
+      localStorage.setItem(LOCAL_TEAM_KEY, JSON.stringify(defaults));
+      return defaults;
+    }
+
+    function saveLocalTeamMembers(members) {
+      localStorage.setItem(LOCAL_TEAM_KEY, JSON.stringify(members));
+    }
+
+    // === Team Members UI Functions ===
+    async function loadTeamMembers() {
+      var container = document.getElementById('team-members-container');
+      if (!container) return;
+      container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);grid-column:1/-1"><span class="spinner"></span> Loading team members...</div>';
+      try {
+        var members = await api('/api/team-members');
+        renderTeamMembers(members);
+      } catch (err) {
+        // Fallback to localStorage
+        var members = getLocalTeamMembers();
+        renderTeamMembers(members);
+      }
+    }
+
+    function renderTeamMembers(members) {
+      var container = document.getElementById('team-members-container');
+      if (!container) return;
+      if (!members || members.length === 0) {
+        container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);grid-column:1/-1">No team members yet.</div>';
+        return;
+      }
+      var html = '';
+      // Filter only active members and sort by displayOrder
+      var active = members.filter(function(m) { return m.isActive !== false; });
+      active.sort(function(a, b) { return (a.displayOrder || 0) - (b.displayOrder || 0); });
+      for (var i = 0; i < active.length; i++) {
+        var m = active[i];
+        var roleClass = m.roleClass || 'role-placeholder';
+        var pos = m.position || '';
+        var desc = m.description || '';
+        var avatar = m.avatarIcon || '&#128100;';
+        html += '<div class="member-card" onclick="showMemberModal(\'' + m.name.replace(/'/g, "\\'") + '\',\'' + pos.replace(/'/g, "\\'") + '\',\'' + roleClass + '\',\'' + desc.replace(/'/g, "\\'") + '\',\'' + (m.role || '') + '\')">';
+        html += '<div class="expand-icon">&#9432;</div>';
+        html += '<div class="avatar">' + avatar + '</div>';
+        html += '<h3 style="margin:0;font-size:15px">' + m.name + '</h3>';
+        html += '<div><span class="role-tag ' + roleClass + '">' + pos + '</span></div>';
+        html += '</div>';
+      }
+      // Add a placeholder card at the end
+      html += '<div class="member-card-placeholder"><div style="text-align:center;padding:16px"><div style="font-size:28px;margin-bottom:6px;opacity:0.5">&#128101;</div><div>Additional role</div><div style="font-size:11px;margin-top:4px;opacity:0.6">Position open — future hire</div></div></div>';
+      container.innerHTML = html;
+    }
+
+    // === Team Manager Modal Functions ===
+    var editingTeamMemberId = null;
+
+    function openTeamManager() {
+      var overlay = document.getElementById('team-manager-overlay');
+      if (overlay) {
+        overlay.classList.add('active');
+        renderTeamManagerList();
+        document.getElementById('team-form-name').value = '';
+        document.getElementById('team-form-position').value = '';
+        document.getElementById('team-form-avatar').value = '&#128100;';
+        document.getElementById('team-form-roleclass').value = 'role-placeholder';
+        document.getElementById('team-form-description').value = '';
+        document.getElementById('team-form-order').value = '0';
+        document.getElementById('team-form-msg').textContent = '';
+        editingTeamMemberId = null;
+        var addBtn = document.getElementById('team-form-add-btn');
+        addBtn.innerHTML = '+ Thêm thành viên';
+        addBtn.onclick = addTeamMember;
+      }
+    }
+
+    function closeTeamManager() {
+      var overlay = document.getElementById('team-manager-overlay');
+      if (overlay) overlay.classList.remove('active');
+    }
+
+    function renderTeamManagerList() {
+      var container = document.getElementById('team-manager-list');
+      if (!container) return;
+      api('/api/team-members/all').then(function(members) {
+        if (!members || members.length === 0) {
+          container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">Chưa có thành viên. Thêm mới bên dưới.</div>';
+          return;
+        }
+        var html = '';
+        for (var i = 0; i < members.length; i++) {
+          var m = members[i];
+          var statusIcon = m.isActive ? '&#10003;' : '&#10007;';
+          var statusColor = m.isActive ? 'var(--accent2)' : 'var(--danger)';
+          html += '<div class="doc-item-row">' +
+                  '<div class="item-info">' +
+                  '<div class="item-name">' + m.avatarIcon + ' ' + m.name + ' <span style="color:' + statusColor + ';font-size:11px">' + statusIcon + '</span></div>' +
+                  '<div class="item-group">' + (m.position || 'No position') + ' | Thứ tự: ' + (m.displayOrder || 0) + '</div>' +
+                  '<div class="item-link" style="font-size:12px;color:var(--muted)">' + (m.description ? m.description.substring(0, 80) + (m.description.length > 80 ? '...' : '') : '') + '</div>' +
+                  '</div>' +
+                  '<div class="item-actions">' +
+                  '<button class="edit-btn" onclick="editTeamMember(' + m.id + ')">&#9998;</button>' +
+                  '<button class="del-btn" onclick="deleteTeamMember(' + m.id + ')">&#10005;</button>' +
+                  '</div>' +
+                  '</div>';
+        }
+        container.innerHTML = html;
+      }).catch(function() {
+        // Fallback to localStorage
+        var members = getLocalTeamMembers();
+        if (members.length === 0) {
+          container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">Chưa có thành viên. Thêm mới bên dưới.</div>';
+          return;
+        }
+        var html = '';
+        for (var i = 0; i < members.length; i++) {
+          var m = members[i];
+          var statusIcon = m.isActive !== false ? '&#10003;' : '&#10007;';
+          var statusColor = m.isActive !== false ? 'var(--accent2)' : 'var(--danger)';
+          html += '<div class="doc-item-row">' +
+                  '<div class="item-info">' +
+                  '<div class="item-name">' + (m.avatarIcon || '&#128100;') + ' ' + m.name + ' <span style="color:' + statusColor + ';font-size:11px">' + statusIcon + '</span></div>' +
+                  '<div class="item-group">' + (m.position || 'No position') + ' | Thứ tự: ' + (m.displayOrder || 0) + '</div>' +
+                  '<div class="item-link" style="font-size:12px;color:var(--muted)">' + (m.description ? m.description.substring(0, 80) + (m.description.length > 80 ? '...' : '') : '') + '</div>' +
+                  '</div>' +
+                  '<div class="item-actions">' +
+                  '<button class="edit-btn" onclick="editTeamMember(' + m.id + ')">&#9998;</button>' +
+                  '<button class="del-btn" onclick="deleteTeamMember(' + m.id + ')">&#10005;</button>' +
+                  '</div>' +
+                  '</div>';
+        }
+        container.innerHTML = html;
+      });
+    }
+
+    async function addTeamMember() {
+      var name = document.getElementById('team-form-name').value.trim();
+      var position = document.getElementById('team-form-position').value.trim();
+      var avatarIcon = document.getElementById('team-form-avatar').value;
+      var roleClass = document.getElementById('team-form-roleclass').value;
+      var description = document.getElementById('team-form-description').value.trim();
+      var displayOrder = parseInt(document.getElementById('team-form-order').value) || 0;
+      var msg = document.getElementById('team-form-msg');
+
+      if (!name) {
+        msg.textContent = 'Vui lòng nhập tên thành viên.';
+        msg.style.color = 'var(--danger)';
+        return;
+      }
+
+      try {
+        await api('/api/team-members', {
+          method: 'POST',
+          body: JSON.stringify({
+            name: name,
+            position: position,
+            role: roleClass === 'role-director' ? 'DIRECTOR' :
+                  roleClass === 'role-it' ? 'IT' :
+                  roleClass === 'role-accounting' ? 'ACCOUNTING' :
+                  roleClass === 'role-executor' ? 'EMPLOYEE' : 'EMPLOYEE',
+            description: description,
+            avatarIcon: avatarIcon,
+            roleClass: roleClass,
+            displayOrder: displayOrder
+          })
+        });
+        msg.textContent = 'Đã thêm thành viên thành công!';
+        msg.style.color = 'var(--accent2)';
+        document.getElementById('team-form-name').value = '';
+        document.getElementById('team-form-position').value = '';
+        document.getElementById('team-form-description').value = '';
+        document.getElementById('team-form-order').value = '0';
+        renderTeamManagerList();
+        loadTeamMembers();
+      } catch (err) {
+        // Fallback to localStorage
+        var members = getLocalTeamMembers();
+        var maxId = 0;
+        for (var i = 0; i < members.length; i++) { if (members[i].id > maxId) maxId = members[i].id; }
+        var newMember = {
+          id: maxId + 1,
+          name: name,
+          position: position,
+          role: roleClass === 'role-director' ? 'DIRECTOR' : roleClass === 'role-it' ? 'IT' : roleClass === 'role-accounting' ? 'ACCOUNTING' : roleClass === 'role-executor' ? 'EMPLOYEE' : 'EMPLOYEE',
+          description: description,
+          avatarIcon: avatarIcon,
+          roleClass: roleClass,
+          displayOrder: displayOrder,
+          isActive: true
+        };
+        members.push(newMember);
+        saveLocalTeamMembers(members);
+        msg.textContent = 'Đã thêm thành viên (offline)!';
+        msg.style.color = 'var(--accent2)';
+        document.getElementById('team-form-name').value = '';
+        document.getElementById('team-form-position').value = '';
+        document.getElementById('team-form-description').value = '';
+        document.getElementById('team-form-order').value = '0';
+        renderTeamManagerList();
+        loadTeamMembers();
+      }
+    }
+
+    function editTeamMember(id) {
+      api('/api/team-members/all').then(function(members) {
+        var item = null;
+        for (var i = 0; i < members.length; i++) { if (members[i].id === id) { item = members[i]; break; } }
+        if (!item) return;
+        fillTeamForm(item);
+      }).catch(function() {
+        var members = getLocalTeamMembers();
+        var item = null;
+        for (var i = 0; i < members.length; i++) { if (members[i].id === id) { item = members[i]; break; } }
+        if (!item) return;
+        fillTeamForm(item);
+      });
+    }
+
+    function fillTeamForm(item) {
+      editingTeamMemberId = item.id;
+      document.getElementById('team-form-name').value = item.name;
+      document.getElementById('team-form-position').value = item.position || '';
+      document.getElementById('team-form-avatar').value = item.avatarIcon || '&#128100;';
+      document.getElementById('team-form-roleclass').value = item.roleClass || 'role-placeholder';
+      document.getElementById('team-form-description').value = item.description || '';
+      document.getElementById('team-form-order').value = item.displayOrder || 0;
+      document.getElementById('team-form-msg').textContent = 'Đang sửa: ' + item.name + '. Nhấn "Cập nhật" để lưu.';
+      document.getElementById('team-form-msg').style.color = 'var(--accent)';
+
+      var addBtn = document.getElementById('team-form-add-btn');
+      addBtn.innerHTML = '&#10003; Cập nhật';
+      addBtn.onclick = function() {
+        updateTeamMember(item.id);
+      };
+    }
+
+    async function updateTeamMember(id) {
+      var name = document.getElementById('team-form-name').value.trim();
+      var position = document.getElementById('team-form-position').value.trim();
+      var avatarIcon = document.getElementById('team-form-avatar').value;
+      var roleClass = document.getElementById('team-form-roleclass').value;
+      var description = document.getElementById('team-form-description').value.trim();
+      var displayOrder = parseInt(document.getElementById('team-form-order').value) || 0;
+      var msg = document.getElementById('team-form-msg');
+
+      if (!name) {
+        msg.textContent = 'Vui lòng nhập tên thành viên.';
+        msg.style.color = 'var(--danger)';
+        return;
+      }
+
+      try {
+        await api('/api/team-members/' + id, {
+          method: 'PUT',
+          body: JSON.stringify({
+            name: name,
+            position: position,
+            role: roleClass === 'role-director' ? 'DIRECTOR' :
+                  roleClass === 'role-it' ? 'IT' :
+                  roleClass === 'role-accounting' ? 'ACCOUNTING' :
+                  roleClass === 'role-executor' ? 'EMPLOYEE' : 'EMPLOYEE',
+            description: description,
+            avatarIcon: avatarIcon,
+            roleClass: roleClass,
+            displayOrder: displayOrder
+          })
+        });
+        msg.textContent = 'Đã cập nhật!';
+        msg.style.color = 'var(--accent2)';
+        resetTeamForm();
+        renderTeamManagerList();
+        loadTeamMembers();
+      } catch (err) {
+        // Fallback to localStorage
+        var members = getLocalTeamMembers();
+        for (var i = 0; i < members.length; i++) {
+          if (members[i].id === id) {
+            members[i].name = name;
+            members[i].position = position;
+            members[i].avatarIcon = avatarIcon;
+            members[i].roleClass = roleClass;
+            members[i].description = description;
+            members[i].displayOrder = displayOrder;
+            break;
+          }
+        }
+        saveLocalTeamMembers(members);
+        msg.textContent = 'Đã cập nhật (offline)!';
+        msg.style.color = 'var(--accent2)';
+        resetTeamForm();
+        renderTeamManagerList();
+        loadTeamMembers();
+      }
+    }
+
+    function resetTeamForm() {
+      editingTeamMemberId = null;
+      document.getElementById('team-form-name').value = '';
+      document.getElementById('team-form-position').value = '';
+      document.getElementById('team-form-avatar').value = '&#128100;';
+      document.getElementById('team-form-roleclass').value = 'role-placeholder';
+      document.getElementById('team-form-description').value = '';
+      document.getElementById('team-form-order').value = '0';
+      var addBtn = document.getElementById('team-form-add-btn');
+      addBtn.innerHTML = '+ Thêm thành viên';
+      addBtn.onclick = addTeamMember;
+    }
+
+    async function deleteTeamMember(id) {
+      if (!confirm('Xóa thành viên này?')) return;
+      try {
+        await api('/api/team-members/' + id, { method: 'DELETE' });
+        renderTeamManagerList();
+        loadTeamMembers();
+      } catch (err) {
+        // Fallback to localStorage
+        var members = getLocalTeamMembers();
+        members = members.filter(function(m) { return m.id !== id; });
+        saveLocalTeamMembers(members);
+        renderTeamManagerList();
+        loadTeamMembers();
+      }
+    }
+
     // === Document Repository Data (with 3 Categories: Group, Fund, VPS + Role-Based Access) ===
     var DOC_GROUPS_KEY = "private_doc_groups";
 
@@ -2530,8 +2878,27 @@
         if (privateChatPollInterval) { clearInterval(privateChatPollInterval); privateChatPollInterval = null; }
       }
 
-      // Show/hide document repo manage link based on admin/role
+// Show/hide document repo manage link based on admin/role
       buildDropdownMenu();
+
+      // Show/hide team manage button based on admin role
+      var teamManageBtn = document.getElementById('team-manage-btn');
+      if (teamManageBtn) {
+        if (user && user.role === 'ADMIN') {
+          teamManageBtn.style.display = 'inline-flex';
+        } else {
+          teamManageBtn.style.display = 'none';
+        }
+      }
+    };
+
+    // Override showPage to load team members when team page is shown
+    var origShowPage = showPage;
+    showPage = function(pageId) {
+      origShowPage(pageId);
+      if (pageId === 'team') {
+        loadTeamMembers();
+      }
     };
 
     // === Init ===
