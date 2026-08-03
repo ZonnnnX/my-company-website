@@ -692,11 +692,62 @@
             <div class="tab" data-admintab="content" onclick="switchAdminTab('content')">&#128221; Nội dung</div>
           </div>
 
-          <!-- Tab: Users -->
+<!-- Tab: Users -->
           <div class="admin-tab-content" id="admin-tab-users">
             <p style="color:var(--muted); font-size:13.5px; margin-bottom:16px">Duyệt tài khoản, đặt role và nhóm trực tiếp.</p>
+            <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px">
+              <button class="btn primary" onclick="openCreateUserModal()" style="font-size:13px;padding:8px 14px"><span class="dot"></span> + Tạo tài khoản</button>
+            </div>
             <div id="admin-users-list" style="overflow-x:auto">
               <div style="text-align:center; padding:20px; color:var(--muted)"><span class="spinner"></span> Loading users...</div>
+            </div>
+          </div>
+
+          <!-- Create User Modal -->
+          <div class="doc-manager-overlay" id="create-user-overlay">
+            <div class="doc-manager-modal">
+              <button class="close-btn" onclick="closeCreateUserModal()">&times;</button>
+              <h3>&#128101; Tạo Tài Khoản Mới</h3>
+              <div class="doc-manager-form">
+                <div class="full">
+                  <label>Họ và tên</label>
+                  <input id="newuser-name" type="text" placeholder="VD: Nguyễn Văn A" />
+                </div>
+                <div class="full">
+                  <label>Email</label>
+                  <input id="newuser-email" type="email" placeholder="VD: user@company.com" />
+                </div>
+                <div class="full">
+                  <label>Mật khẩu (tối thiểu 6 ký tự)</label>
+                  <input id="newuser-password" type="password" placeholder="Mật khẩu" />
+                </div>
+                <div>
+                  <label>Vai trò (Role)</label>
+                  <select id="newuser-role"></select>
+                </div>
+                <div>
+                  <label>Nhóm (Group)</label>
+                  <select id="newuser-group">
+                    <option value="General">General</option>
+                    <option value="GROUP1">Thực thi nhóm 1 (GROUP1)</option>
+                    <option value="GROUP2">Thực thi nhóm 2 (GROUP2)</option>
+                    <option value="GROUP3">Thực thi nhóm 3 (GROUP3)</option>
+                    <option value="FUND1">Quỹ chứng 1 (FUND1)</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Trạng thái</label>
+                  <select id="newuser-status">
+                    <option value="APPROVED">APPROVED (Kích hoạt ngay)</option>
+                    <option value="PENDING">PENDING (Chờ duyệt)</option>
+                  </select>
+                </div>
+                <div class="form-actions">
+                  <span class="form-msg" id="newuser-msg"></span>
+                  <button class="btn primary" onclick="createUserAccount()">&#10003; Tạo tài khoản</button>
+                  <button class="btn" onclick="closeCreateUserModal()" style="padding:8px 20px">Đóng</button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1336,6 +1387,39 @@
                 result.push({ id: u.id, name: u.name, email: u.email, role: u.role, status: u.status, group: u.group, permissions: u.permissions, createdAt: u.createdAt, updatedAt: u.updatedAt });
             }
             return result;
+        }
+
+        if (path === '/api/admin/users' && method === 'POST') {
+            var users = getLocalUsers();
+            var name = (body.name || '').trim();
+            var email = (body.email || '').trim().toLowerCase();
+            var password = body.password || '';
+            var role = body.role || 'EMPLOYEE';
+            var group = body.group || 'General';
+            var status = body.status || 'APPROVED';
+            if (!name) throw new Error('Name, email, and password are required.');
+            if (!email || email.indexOf('@') === -1) throw new Error('Valid email is required.');
+            if (password.length < 6) throw new Error('Password must be at least 6 characters.');
+            for (var cui = 0; cui < users.length; cui++) {
+                if (users[cui].email === email) throw new Error('An account with this email already exists.');
+            }
+            var maxNewId = 0;
+            for (var cui2 = 0; cui2 < users.length; cui2++) { if (users[cui2].id > maxNewId) maxNewId = users[cui2].id; }
+            var newUser = {
+                id: maxNewId + 1,
+                name: name,
+                email: email,
+                password: password,
+                role: role,
+                status: status,
+                group: group,
+                permissions: '{}',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+            users.push(newUser);
+            saveLocalUsers(users);
+            return { message: 'User created successfully.', user: { id: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role, status: newUser.status, group: newUser.group, permissions: newUser.permissions, createdAt: newUser.createdAt, updatedAt: newUser.updatedAt } };
         }
 
         var statusMatch = path.match(/^\/api\/admin\/users\/(\d+)\/status$/);
@@ -2020,6 +2104,70 @@
       } catch (err) {
         alert('Error updating role: ' + err.message);
         loadAdminUsers();
+      }
+    }
+
+    // === Admin: Create User Account ===
+    function openCreateUserModal() {
+      var overlay = document.getElementById('create-user-overlay');
+      if (!overlay) return;
+      overlay.classList.add('active');
+      document.getElementById('newuser-name').value = '';
+      document.getElementById('newuser-email').value = '';
+      document.getElementById('newuser-password').value = '';
+      document.getElementById('newuser-status').value = 'APPROVED';
+      var msg = document.getElementById('newuser-msg');
+      if (msg) { msg.textContent = ''; msg.style.color = ''; }
+      // Populate role select with all roles (default + group + custom)
+      var roleSel = document.getElementById('newuser-role');
+      var allRoles = getAllRoles();
+      var html = '';
+      for (var i = 0; i < allRoles.length; i++) {
+        var roleVal = allRoles[i];
+        // Custom roles are objects {name, createdAt}
+        if (typeof roleVal === 'object' && roleVal.name) roleVal = roleVal.name;
+        var roleLabel = isGroupRole(roleVal) ? (getGroupRoleName(roleVal) + ' (' + roleVal + ')') : roleVal;
+        html += '<option value="' + roleVal + '"' + (roleVal === 'EMPLOYEE' ? ' selected' : '') + '>' + roleLabel + '</option>';
+      }
+      roleSel.innerHTML = html;
+      document.getElementById('newuser-group').value = 'General';
+    }
+
+    function closeCreateUserModal() {
+      var overlay = document.getElementById('create-user-overlay');
+      if (overlay) overlay.classList.remove('active');
+    }
+
+    async function createUserAccount() {
+      var name = document.getElementById('newuser-name').value.trim();
+      var email = document.getElementById('newuser-email').value.trim();
+      var password = document.getElementById('newuser-password').value;
+      var role = document.getElementById('newuser-role').value;
+      var group = document.getElementById('newuser-group').value;
+      var status = document.getElementById('newuser-status').value;
+      var msg = document.getElementById('newuser-msg');
+      if (!msg) return;
+      msg.textContent = '';
+      msg.style.color = '';
+      if (!name) { msg.textContent = 'Vui lòng nhập tên.'; msg.style.color = 'var(--danger)'; return; }
+      if (!email) { msg.textContent = 'Vui lòng nhập email.'; msg.style.color = 'var(--danger)'; return; }
+      if (!password || password.length < 6) { msg.textContent = 'Mật khẩu phải có ít nhất 6 ký tự.'; msg.style.color = 'var(--danger)'; return; }
+      var btn = event.target;
+      if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Đang tạo...'; }
+      try {
+        await api('/api/admin/users', {
+          method: 'POST',
+          body: JSON.stringify({ name: name, email: email, password: password, role: role, group: group, status: status })
+        });
+        msg.textContent = 'Đã tạo tài khoản "' + name + '" thành công!';
+        msg.style.color = 'var(--accent2)';
+        setTimeout(closeCreateUserModal, 1200);
+        loadAdminUsers();
+      } catch (err) {
+        msg.textContent = 'Lỗi: ' + err.message;
+        msg.style.color = 'var(--danger)';
+      } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = '&#10003; Tạo tài khoản'; }
       }
     }
 
