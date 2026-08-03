@@ -346,14 +346,60 @@
     }
     .doc-manager-form .full{grid-column:1 / -1}
     .doc-manager-form label{font-size:12px; color:var(--muted); margin-bottom:4px; display:block}
-    .doc-manager-form input,.doc-manager-form select{
-      width:100%; padding:10px 12px; border-radius:10px;
+.doc-manager-form input,.doc-manager-form select{
+      width:100%; padding:12px 14px; border-radius:10px;
       border:1px solid var(--border);
-      background:rgba(255,255,255,.04); color:var(--text);
+      background:rgba(255,255,255,.06); color:var(--text);
       outline:none; font-family:inherit; font-size:13px;
+      box-sizing:border-box; line-height:1.4;
     }
-    .doc-manager-form input:focus,.doc-manager-form select:focus{border-color:var(--accent)}
-    .doc-manager-form select option{background:var(--card); color:var(--text)}
+    .doc-manager-form input:focus,.doc-manager-form select:focus{
+      border-color:var(--accent);
+      box-shadow:0 0 0 3px rgba(106,167,255,.18);
+    }
+    .doc-manager-form select{
+      cursor:pointer;
+      appearance:none;
+      -webkit-appearance:none;
+      -moz-appearance:none;
+      background-image:url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a9b6d6' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-position:right 12px center;
+      background-repeat:no-repeat;
+      padding-right:34px;
+    }
+    .doc-manager-form select:hover{border-color:rgba(106,167,255,.5); background-color:rgba(106,167,255,.08)}
+    .doc-manager-form select option{
+      background:#1a2438; color:#eef3fe;
+      padding:10px 12px; font-size:13px;
+    }
+    .doc-manager-form select option:hover,
+    .doc-manager-form select option:checked{
+      background:#2a3a5c; color:#ffffff;
+    }
+    .doc-manager-form select option:disabled{color:var(--muted)}
+    /* --- Shared admin select (invites, user-role dropdown, etc.) --- */
+    .admin-select{
+      padding:10px 34px 10px 12px;
+      border-radius:10px;
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.06); color:var(--text);
+      outline:none; font-family:inherit; font-size:13px;
+      box-sizing:border-box; line-height:1.4; cursor:pointer;
+      appearance:none;
+      -webkit-appearance:none;
+      -moz-appearance:none;
+      background-image:url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a9b6d6' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-position:right 12px center;
+      background-repeat:no-repeat;
+    }
+    .admin-select:hover{border-color:rgba(106,167,255,.5); background-color:rgba(106,167,255,.08)}
+    .admin-select:focus{border-color:var(--accent); box-shadow:0 0 0 3px rgba(106,167,255,.18)}
+    .admin-select option{
+      background:#1a2438; color:#eef3fe;
+      padding:10px 12px; font-size:13px;
+    }
+    .admin-select option:hover,
+    .admin-select option:checked{background:#2a3a5c; color:#ffffff}
     .doc-manager-form .form-actions{display:flex; gap:8px; align-items:center; grid-column:1 / -1}
     .doc-manager-form .form-msg{font-size:12px; color:var(--accent2); flex:1}
     /* User badge bar below nav */
@@ -857,9 +903,9 @@
           <div class="admin-tab-content" id="admin-tab-invites" style="display:none">
             <p style="color:var(--muted); font-size:13.5px; margin-bottom:16px">Tạo liên kết mời qua email. Người nhận bấm link sẽ được tự động đăng ký và cấp quyền đúng role/nhóm.</p>
             <div class="full-row">
-              <input id="invite-email" type="email" placeholder="Email người được mời (tùy chọn)" />
-              <select id="invite-role" style="flex:1; min-width:200px; padding:12px 12px; border-radius:12px; border:1px solid var(--border); background:rgba(255,255,255,.04); color:var(--text); outline:none"></select>
-              <select id="invite-group" style="flex:1; min-width:150px; padding:12px 12px; border-radius:12px; border:1px solid var(--border); background:rgba(255,255,255,.04); color:var(--text); outline:none">
+<input id="invite-email" type="email" placeholder="Email người được mời (tùy chọn)" />
+              <select id="invite-role" class="admin-select" style="flex:1; min-width:200px"></select>
+              <select id="invite-group" class="admin-select" style="flex:1; min-width:150px">
                 <option value="General">General</option>
               </select>
               <button class="btn primary" onclick="createInviteLink()" style="white-space:nowrap"><span class="dot"></span> Tạo Link</button>
@@ -2247,7 +2293,7 @@
           html += '<tr>';
           html += '<td>' + u.name + '</td>';
           html += '<td>' + u.email + '</td>';
-          html += '<td><select onchange="handleRoleChange(' + u.id + ',this.value)" style="padding:4px 8px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text);font-size:12px;outline:none">';
+html += '<td><select class="admin-select" onchange="handleRoleChange(' + u.id + ',this.value)" style="padding:4px 8px;font-size:12px">';
           for (var r = 0; r < roleOptions.length; r++) {
             var roleVal = roleOptions[r];
             var roleLabel = isGroupRole(roleVal) ? (getGroupRoleName(roleVal) + ' (' + roleVal + ')') : roleVal;
