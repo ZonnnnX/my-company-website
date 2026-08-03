@@ -8,23 +8,28 @@ datasource db {
 }
 
 model User {
-  id          Int           @id @default(autoincrement())
-  name        String
-  email       String        @unique
-  password    String
-  role        String        @default("EMPLOYEE")
-  status      String        @default("PENDING")
-  group       String        @default("General")
-  permissions String        @default("{}")
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  messages    ChatMessage[]
-  notifications Notification[]
-  sentMessages      PrivateMessage[] @relation("SentMessages")
+  id              Int           @id @default(autoincrement())
+  name            String
+  email           String        @unique
+  password        String
+  role            String        @default("EMPLOYEE")
+  status          String        @default("PENDING")
+  group           String        @default("General")
+  permissions     String        @default("{}")
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  messages        ChatMessage[]
+  notifications   Notification[]
+  sentMessages    PrivateMessage[] @relation("SentMessages")
   receivedMessages  PrivateMessage[] @relation("ReceivedMessages")
-  reports           ReportItem[]
-  teamMembers       TeamMember[]
-  documentItems     DocumentItem[]
+  reports         ReportItem[]
+  teamMembers     TeamMember[]
+  documentItems   DocumentItem[]
+  createdGroups   GroupChat[]        @relation("GroupCreatedBy")
+  groupMemberships GroupChatMember[]
+  groupMessages   GroupChatMessage[]
+  invitesCreated  Invite[]           @relation("InviteCreatedBy")
+  contacts        ContactMessage[]
 }
 
 model AccessCode {
@@ -110,4 +115,76 @@ model DocumentItem {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   createdBy   User?    @relation(fields: [createdById], references: [id])
+}
+
+model CustomRole {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  permissions String @default("{}")
+  createdAt DateTime @default(now())
+}
+
+model Invite {
+  id           Int      @id @default(autoincrement())
+  code         String   @unique
+  email        String?
+  role         String   @default("EMPLOYEE")
+  group        String   @default("General")
+  createdById  Int?
+  createdAt    DateTime @default(now())
+  usedBy       Int?
+  usedByName   String?
+  usedAt       DateTime?
+  creator      User?    @relation("InviteCreatedBy", fields: [createdById], references: [id])
+}
+
+model ContactMessage {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String
+  message   String
+  createdAt DateTime @default(now())
+  userId    Int?
+  user      User?    @relation(fields: [userId], references: [id])
+}
+
+model SiteContent {
+  id      Int    @id @default(autoincrement())
+  key     String @unique
+  value   String
+  updatedAt DateTime @updatedAt
+}
+
+model GroupChat {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String   @default("")
+  createdById Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   User     @relation("GroupCreatedBy", fields: [createdById], references: [id])
+  members     GroupChatMember[]
+  messages    GroupChatMessage[]
+}
+
+model GroupChatMember {
+  id        Int      @id @default(autoincrement())
+  groupId   Int
+  userId    Int
+  role      String   @default("MEMBER") // ADMIN, MEMBER
+  joinedAt  DateTime @default(now())
+  group     GroupChat @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([groupId, userId])
+}
+
+model GroupChatMessage {
+  id        Int      @id @default(autoincrement())
+  groupId   Int
+  senderId  Int
+  senderName String
+  content   String
+  createdAt DateTime @default(now())
+  group     GroupChat @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  sender    User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
 }

@@ -111,7 +111,7 @@ app.get("/api/health", (req, res) => {
 // Register a new user
 app.post("/api/auth/register", async (req, res) => {
     try {
-        const { name, email, password } = req.body;
+        const { name, email, password, inviteCode } = req.body;
 
         if (!name || !email || !password) {
             return res.status(400).json({ message: "Name, email, and password are required." });
@@ -139,6 +139,26 @@ app.post("/api/auth/register", async (req, res) => {
             });
         }
 
+        // Check invite code if provided
+        let newRole = "EMPLOYEE";
+        let newStatus = "PENDING";
+        let newGroup = "General";
+        if (inviteCode && typeof inviteCode === "string" && inviteCode.trim().length > 0) {
+            const invite = await prisma.invite.findUnique({ where: { code: inviteCode.trim() } });
+            if (!invite) {
+                return res.status(400).json({ message: "Mã mời không hợp lệ hoặc đã bị xóa." });
+            }
+            if (invite.usedBy) {
+                return res.status(400).json({ message: "Mã mời này đã được sử dụng." });
+            }
+            if (invite.email && invite.email !== email.toLowerCase().trim()) {
+                return res.status(400).json({ message: "Mã mời này chỉ dành cho email: " + invite.email });
+            }
+            newRole = invite.role || "EMPLOYEE";
+            newStatus = "APPROVED";
+            newGroup = invite.group || "General";
+        }
+
         const hashedPassword = await bcrypt.hash(password, 10);
 
         const user = await prisma.user.create({
@@ -146,13 +166,32 @@ app.post("/api/auth/register", async (req, res) => {
                 name: name.trim(),
                 email: email.toLowerCase().trim(),
                 password: hashedPassword,
-                role: "EMPLOYEE",
-                status: "PENDING"
+                role: newRole,
+                group: newGroup,
+                status: newStatus
             }
         });
 
+        // If invite used, mark it
+        if (inviteCode && typeof inviteCode === "string" && inviteCode.trim().length > 0) {
+            await prisma.invite.updateMany({
+                where: { code: inviteCode.trim() },
+                data: { usedBy: user.id, usedByName: user.name, usedAt: new Date() }
+            });
+        }
+
+        // Notify admins about new registration
+        if (newStatus === "PENDING") {
+            const admins = await prisma.user.findMany({ where: { role: "ADMIN" }, select: { id: true } });
+            for (const a of admins) {
+                await createNotification(a.id, "registration", "New registration", `${user.name} (${user.email}) registered and needs approval.`);
+            }
+        }
+
         return res.status(201).json({
-            message: "Registration successful. Your account is pending admin approval.",
+            message: newStatus === "APPROVED"
+                ? "Đăng ký thành công! Tài khoản của bạn đã được cấp quyền qua mã mời."
+                : "Registration successful. Your account is pending admin approval.",
             user: {
                 id: user.id,
                 name: user.name,
@@ -498,13 +537,18 @@ app.post("/api/chat/private/:userId", authenticateToken, async (req, res) => {
             }
         });
 
-        // Create notification for receiver
-        await prisma.notification.create({
-            data: {
-                userId: receiverId,
-                type: "chat",
-                title: "New private message",
-                message: `${req.user.name} sent you a message: ${content.trim().substring(0, 50)}${content.trim().length > 50 ? '...' : ''}`
+        // Create notification + SSE push for receiver
+        await createNotification(receiverId, "chat", "New private message", `${req.user.name} sent you a message: ${content.trim().substring(0, 50)}${content.trim().length > 50 ? '...' : ''}`);
+        sseSend(receiverId, "private_message", {
+            sender: sender ? { id: sender.id, name: sender.name, role: sender.role } : { id: req.user.id, name: req.user.name, role: req.user.role },
+            message: {
+                id: message.id,
+                senderId: req.user.id,
+                receiverId,
+                content: message.content,
+                read: message.read,
+                createdAt: message.createdAt,
+                senderName: sender ? sender.name : req.user.name
             }
         });
 
@@ -546,13 +590,18 @@ app.post("/api/chat/private", authenticateToken, async (req, res) => {
             }
         });
 
-        // Create notification for receiver
-        await prisma.notification.create({
-            data: {
-                userId: parseInt(receiverId),
-                type: "chat",
-                title: "New private message",
-                message: `${req.user.name} sent you a message: ${content.trim().substring(0, 50)}${content.trim().length > 50 ? '...' : ''}`
+        // Create notification + SSE push for receiver
+        await createNotification(parseInt(receiverId), "chat", "New private message", `${req.user.name} sent you a message: ${content.trim().substring(0, 50)}${content.trim().length > 50 ? '...' : ''}`);
+        sseSend(parseInt(receiverId), "private_message", {
+            sender: sender ? { id: sender.id, name: sender.name, role: sender.role } : { id: req.user.id, name: req.user.name, role: req.user.role },
+            message: {
+                id: message.id,
+                senderId: req.user.id,
+                receiverId: parseInt(receiverId),
+                content: message.content,
+                read: message.read,
+                createdAt: message.createdAt,
+                senderName: sender ? sender.name : req.user.name
             }
         });
 
@@ -997,6 +1046,9 @@ app.post("/api/chat/messages", authenticateToken, async (req, res) => {
             }
         });
 
+        // Real-time push to other connected users
+        sseBroadcast("chat_message", message);
+
         return res.status(201).json(message);
     } catch (error) {
         console.error("Create message error:", error);
@@ -1183,6 +1235,735 @@ app.delete("/api/reports/:id", authenticateToken, async (req, res) => {
         return res.json({ message: "Report deleted." });
     } catch (error) {
         console.error("Delete report error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+// ============================================================
+// === NEW FEATURES: Admin CRUD, Roles, Invites, Content, Docs,
+// === Group Chats, Broadcast Notifications, Contact, SSE Realtime
+// ============================================================
+
+// --- SSE Real-Time Event Stream ---
+const sseClients = new Map(); // userId -> Set<res>
+
+function sseSend(userId, event, data) {
+    const clients = sseClients.get(userId);
+    if (!clients) return;
+    const payload = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+    for (const res of clients) {
+        try { res.write(payload); } catch (e) {}
+    }
+}
+
+function sseBroadcast(event, data) {
+    for (const userId of Array.from(sseClients.keys())) {
+        sseSend(userId, event, data);
+    }
+}
+
+async function createNotification(userId, type, title, message) {
+    try {
+        const notif = await prisma.notification.create({
+            data: { userId, type, title, message }
+        });
+        sseSend(userId, "notification", notif);
+        return notif;
+    } catch (e) {
+        console.error("createNotification error:", e);
+        return null;
+    }
+}
+
+app.get("/api/events", async (req, res) => {
+    const token = req.query.token;
+    if (!token) return res.status(401).json({ message: "Token required." });
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        const user = await prisma.user.findUnique({ where: { id: decoded.id } });
+        if (!user) return res.status(404).json({ message: "User not found." });
+
+        res.setHeader("Content-Type", "text/event-stream");
+        res.setHeader("Cache-Control", "no-cache");
+        res.setHeader("Connection", "keep-alive");
+        res.setHeader("X-Accel-Buffering", "no");
+        res.flushHeaders();
+
+        res.write(`event: connected\ndata: {"message":"connected"}\n\n`);
+
+        if (!sseClients.has(user.id)) sseClients.set(user.id, new Set());
+        sseClients.get(user.id).add(res);
+
+        const heartbeat = setInterval(() => {
+            try { res.write(`: heartbeat\n\n`); } catch (e) {}
+        }, 25000);
+
+        req.on("close", () => {
+            clearInterval(heartbeat);
+            const clients = sseClients.get(user.id);
+            if (clients) {
+                clients.delete(res);
+                if (clients.size === 0) sseClients.delete(user.id);
+            }
+        });
+    } catch (err) {
+        return res.status(403).json({ message: "Invalid token." });
+    }
+});
+
+// --- Admin: Create User Manually ---
+app.post("/api/admin/users", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { name, email, password, role, group, status, permissions } = req.body;
+
+        if (!name || !email || !password) {
+            return res.status(400).json({ message: "Name, email, and password are required." });
+        }
+        if (typeof email !== "string" || !email.includes("@")) {
+            return res.status(400).json({ message: "Valid email is required." });
+        }
+        if (typeof password !== "string" || password.length < 6) {
+            return res.status(400).json({ message: "Password must be at least 6 characters." });
+        }
+
+        const existing = await prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } });
+        if (existing) {
+            return res.status(409).json({ message: "An account with this email already exists." });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const user = await prisma.user.create({
+            data: {
+                name: name.trim(),
+                email: email.toLowerCase().trim(),
+                password: hashedPassword,
+                role: role || "EMPLOYEE",
+                group: group || "General",
+                status: status || "APPROVED",
+                permissions: permissions ? JSON.stringify(permissions) : "{}"
+            },
+            select: { id: true, name: true, email: true, role: true, status: true, group: true, permissions: true, createdAt: true, updatedAt: true }
+        });
+
+        return res.status(201).json({ message: "User created successfully.", user });
+    } catch (error) {
+        console.error("Create user error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+// --- Admin: Edit User Manually (PUT /api/admin/users/:id) ---
+app.put("/api/admin/users/:id", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (isNaN(id)) return res.status(400).json({ message: "Invalid user ID." });
+
+        const user = await prisma.user.findUnique({ where: { id } });
+        if (!user) return res.status(404).json({ message: "User not found." });
+
+        const { name, role, group, status, permissions } = req.body;
+
+        const updated = await prisma.user.update({
+            where: { id },
+            data: {
+                ...(name !== undefined && { name: name.trim() }),
+                ...(role !== undefined && { role }),
+                ...(group !== undefined && { group: group.trim() }),
+                ...(status !== undefined && { status }),
+                ...(permissions !== undefined && { permissions: typeof permissions === "string" ? permissions : JSON.stringify(permissions) })
+            },
+            select: { id: true, name: true, email: true, role: true, status: true, group: true, permissions: true, updatedAt: true }
+        });
+
+        return res.json({ message: "User updated.", user: updated });
+    } catch (error) {
+        console.error("Update user error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+// --- Admin: Reset User Password ---
+app.post("/api/admin/users/:id/password", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (isNaN(id)) return res.status(400).json({ message: "Invalid user ID." });
+
+        const { password } = req.body;
+        if (!password || typeof password !== "string" || password.length < 6) {
+            return res.status(400).json({ message: "Password must be at least 6 characters." });
+        }
+
+        const user = await prisma.user.findUnique({ where: { id } });
+        if (!user) return res.status(404).json({ message: "User not found." });
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        await prisma.user.update({
+            where: { id },
+            data: { password: hashedPassword }
+        });
+
+        return res.json({ message: "Password reset successfully." });
+    } catch (error) {
+        console.error("Reset password error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+// --- Admin: Delete User ---
+app.delete("/api/admin/users/:id", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (isNaN(id)) return res.status(400).json({ message: "Invalid user ID." });
+
+        if (id === req.user.id) {
+            return res.status(400).json({ message: "You cannot delete your own account." });
+        }
+
+        const user = await prisma.user.findUnique({ where: { id } });
+        if (!user) return res.status(404).json({ message: "User not found." });
+
+        // Clean up related data
+        await prisma.privateMessage.deleteMany({ where: { OR: [{ senderId: id }, { receiverId: id }] } });
+        await prisma.chatMessage.deleteMany({ where: { senderId: id } });
+        await prisma.notification.deleteMany({ where: { userId: id } });
+        await prisma.groupChatMember.deleteMany({ where: { userId: id } });
+        await prisma.groupChatMessage.deleteMany({ where: { senderId: id } });
+        await prisma.reportItem.deleteMany({ where: { createdById: id } });
+        await prisma.contactMessage.deleteMany({ where: { userId: id } });
+        await prisma.user.delete({ where: { id } });
+
+        return res.json({ message: "User deleted." });
+    } catch (error) {
+        console.error("Delete user error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+// --- Custom Roles API ---
+app.get("/api/admin/custom-roles", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const roles = await prisma.customRole.findMany({ orderBy: { createdAt: "asc" } });
+        return res.json(roles);
+    } catch (error) {
+        console.error("List custom roles error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+app.post("/api/admin/custom-roles", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { name, permissions } = req.body;
+        if (!name || typeof name !== "string" || name.trim().length === 0) {
+            return res.status(400).json({ message: "Role name is required." });
+        }
+        const roleName = name.trim().toUpperCase();
+        const existing = await prisma.customRole.findUnique({ where: { name: roleName } });
+        if (existing) {
+            return res.status(409).json({ message: `Role "${roleName}" already exists.` });
+        }
+        const role = await prisma.customRole.create({
+            data: { name: roleName, permissions: permissions ? JSON.stringify(permissions) : "{}" }
+        });
+        return res.status(201).json(role);
+    } catch (error) {
+        console.error("Create custom role error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+app.put("/api/admin/custom-roles/:name", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const roleName = decodeURIComponent(req.params.name).toUpperCase();
+        const { permissions } = req.body;
+        const role = await prisma.customRole.findUnique({ where: { name: roleName } });
+        if (!role) return res.status(404).json({ message: "Role not found." });
+
+        const updated = await prisma.customRole.update({
+            where: { name: roleName },
+            data: { permissions: permissions ? JSON.stringify(permissions) : role.permissions }
+        });
+        return res.json(updated);
+    } catch (error) {
+        console.error("Update custom role error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+app.delete("/api/admin/custom-roles/:name", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const roleName = decodeURIComponent(req.params.name).toUpperCase();
+        await prisma.customRole.delete({ where: { name: roleName } });
+        return res.json({ message: "Role deleted." });
+    } catch (error) {
+        console.error("Delete custom role error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+// --- Invites API ---
+app.get("/api/admin/invites", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const invites = await prisma.invite.findMany({ orderBy: { createdAt: "desc" } });
+        return res.json(invites);
+    } catch (error) {
+        console.error("List invites error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+app.post("/api/admin/invites", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { email, role, group } = req.body;
+        const code = "INV" + Date.now().toString(36).toUpperCase();
+        const invite = await prisma.invite.create({
+            data: {
+                code,
+                email: email ? email.toLowerCase().trim() : null,
+                role: role || "EMPLOYEE",
+                group: group || "General",
+                createdById: req.user.id
+            }
+        });
+        return res.status(201).json(invite);
+    } catch (error) {
+        console.error("Create invite error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+app.delete("/api/admin/invites/:id", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (isNaN(id)) return res.status(400).json({ message: "Invalid ID." });
+        await prisma.invite.delete({ where: { id } });
+        return res.json({ message: "Invite deleted." });
+    } catch (error) {
+        console.error("Delete invite error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+// --- Site Content API ---
+app.get("/api/site-content", async (req, res) => {
+    try {
+        const records = await prisma.siteContent.findMany();
+        const content = {};
+        for (const r of records) {
+            try { content[r.key] = JSON.parse(r.value); } catch (e) { content[r.key] = r.value; }
+        }
+        return res.json(content);
+    } catch (error) {
+        console.error("Get site content error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+app.put("/api/site-content", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const updates = req.body || {};
+        for (const key of Object.keys(updates)) {
+            const value = JSON.stringify(updates[key]);
+            const existing = await prisma.siteContent.findUnique({ where: { key } });
+            if (existing) {
+                await prisma.siteContent.update({ where: { key }, data: { value } });
+            } else {
+                await prisma.siteContent.create({ data: { key, value } });
+            }
+        }
+        return res.json({ message: "Site content updated." });
+    } catch (error) {
+        console.error("Update site content error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+// --- Documents API (Document Repository) ---
+app.get("/api/documents", async (req, res) => {
+    try {
+        const docs = await prisma.documentItem.findMany({ orderBy: { displayOrder: "asc" } });
+        return res.json(docs);
+    } catch (error) {
+        console.error("Get documents error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+app.get("/api/documents/all", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const docs = await prisma.documentItem.findMany({ orderBy: { displayOrder: "asc" } });
+        return res.json(docs);
+    } catch (error) {
+        console.error("Get all documents error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+app.post("/api/documents", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { name, link, category, visibleRoles, displayOrder } = req.body;
+        if (!name || !link) return res.status(400).json({ message: "Name and link are required." });
+        const doc = await prisma.documentItem.create({
+            data: {
+                name: name.trim(),
+                link: link.trim(),
+                category: category || "Group",
+                visibleRoles: visibleRoles ? JSON.stringify(visibleRoles) : "[]",
+                displayOrder: parseInt(displayOrder) || 0,
+                createdById: req.user.id
+            }
+        });
+        return res.status(201).json(doc);
+    } catch (error) {
+        console.error("Create document error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+app.put("/api/documents/:id", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (isNaN(id)) return res.status(400).json({ message: "Invalid ID." });
+        const { name, link, category, visibleRoles, displayOrder } = req.body;
+        const doc = await prisma.documentItem.findUnique({ where: { id } });
+        if (!doc) return res.status(404).json({ message: "Document not found." });
+
+        const updated = await prisma.documentItem.update({
+            where: { id },
+            data: {
+                ...(name !== undefined && { name: name.trim() }),
+                ...(link !== undefined && { link: link.trim() }),
+                ...(category !== undefined && { category }),
+                ...(visibleRoles !== undefined && { visibleRoles: JSON.stringify(visibleRoles) }),
+                ...(displayOrder !== undefined && { displayOrder: parseInt(displayOrder) })
+            }
+        });
+        return res.json(updated);
+    } catch (error) {
+        console.error("Update document error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+app.delete("/api/documents/:id", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (isNaN(id)) return res.status(400).json({ message: "Invalid ID." });
+        await prisma.documentItem.delete({ where: { id } });
+        return res.json({ message: "Document deleted." });
+    } catch (error) {
+        console.error("Delete document error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+// --- Group Chats API ---
+// Helper: can user manage group chats
+function canManageGroupChats(user) {
+    return ["ADMIN", "DIRECTOR", "IT", "ACCOUNTING", "LEADER"].indexOf(user.role) !== -1;
+}
+
+// List group chats the user is a member of
+app.get("/api/group-chats", authenticateToken, async (req, res) => {
+    try {
+        const memberships = await prisma.groupChatMember.findMany({
+            where: { userId: req.user.id },
+            include: {
+                group: {
+                    include: {
+                        members: { include: { user: { select: { id: true, name: true, role: true } } } },
+                        createdBy: { select: { id: true, name: true } }
+                    }
+                }
+            }
+        });
+        const groups = memberships.map(m => m.group);
+        for (const g of groups) {
+            const lastMsg = await prisma.groupChatMessage.findFirst({
+                where: { groupId: g.id },
+                orderBy: { createdAt: "desc" }
+            });
+            g.lastMessage = lastMsg || null;
+        }
+        return res.json(groups);
+    } catch (error) {
+        console.error("Get group chats error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+// List all group chats (admin only)
+app.get("/api/group-chats/all", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const groups = await prisma.groupChat.findMany({
+            include: {
+                members: { include: { user: { select: { id: true, name: true, role: true } } } },
+                createdBy: { select: { id: true, name: true } }
+            }
+        });
+        return res.json(groups);
+    } catch (error) {
+        console.error("Get all group chats error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+// Create a group chat
+app.post("/api/group-chats", authenticateToken, async (req, res) => {
+    try {
+        const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+        if (!user) return res.status(404).json({ message: "User not found." });
+        if (!canManageGroupChats(user)) {
+            return res.status(403).json({ message: "You don't have permission to create group chats." });
+        }
+
+        const { name, description, memberIds } = req.body;
+        if (!name || typeof name !== "string" || name.trim().length === 0) {
+            return res.status(400).json({ message: "Group name is required." });
+        }
+
+        const group = await prisma.groupChat.create({
+            data: {
+                name: name.trim(),
+                description: description || "",
+                createdById: user.id,
+                members: {
+                    create: [
+                        { userId: user.id, role: "ADMIN" },
+                        ...(memberIds || []).filter(mid => parseInt(mid) !== user.id).map(mid => ({
+                            userId: parseInt(mid), role: "MEMBER"
+                        }))
+                    ]
+                }
+            },
+            include: {
+                members: { include: { user: { select: { id: true, name: true, role: true } } } },
+                createdBy: { select: { id: true, name: true } }
+            }
+        });
+
+        const memberUserIds = (memberIds || []).filter(mid => parseInt(mid) !== user.id);
+        for (const mid of memberUserIds) {
+            await createNotification(parseInt(mid), "group", "Added to group chat", `You were added to the group "${group.name}" by ${user.name}.`);
+        }
+
+        return res.status(201).json(group);
+    } catch (error) {
+        console.error("Create group chat error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+// Update group chat (name, description, add/remove members)
+app.put("/api/group-chats/:id", authenticateToken, async (req, res) => {
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (isNaN(id)) return res.status(400).json({ message: "Invalid group ID." });
+
+        const group = await prisma.groupChat.findUnique({ where: { id } });
+        if (!group) return res.status(404).json({ message: "Group not found." });
+
+        const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+        if (!user) return res.status(404).json({ message: "User not found." });
+
+        const membership = await prisma.groupChatMember.findUnique({
+            where: { groupId_userId: { groupId: id, userId: user.id } }
+        });
+        const isGroupAdmin = membership && membership.role === "ADMIN";
+        if (!canManageGroupChats(user) && !isGroupAdmin) {
+            return res.status(403).json({ message: "You don't have permission to edit this group." });
+        }
+
+        const { name, description, memberIds } = req.body;
+
+        const updated = await prisma.groupChat.update({
+            where: { id },
+            data: {
+                ...(name !== undefined && { name: name.trim() }),
+                ...(description !== undefined && { description })
+            }
+        });
+
+        if (memberIds && Array.isArray(memberIds)) {
+            const currentMembers = await prisma.groupChatMember.findMany({ where: { groupId: id } });
+            const currentIds = new Set(currentMembers.map(m => m.userId));
+            const newIds = new Set(memberIds.map(mid => parseInt(mid)));
+            for (const m of currentMembers) {
+                if (!newIds.has(m.userId)) {
+                    await prisma.groupChatMember.delete({ where: { id: m.id } });
+                }
+            }
+            for (const mid of newIds) {
+                if (!currentIds.has(mid)) {
+                    await prisma.groupChatMember.create({
+                        data: { groupId: id, userId: mid, role: "MEMBER" }
+                    });
+                    const addedUser = await prisma.user.findUnique({ where: { id: mid } });
+                    if (addedUser) {
+                        await createNotification(mid, "group", "Added to group chat", `You were added to the group "${updated.name}" by ${user.name}.`);
+                    }
+                }
+            }
+        }
+
+        const result = await prisma.groupChat.findUnique({
+            where: { id },
+            include: {
+                members: { include: { user: { select: { id: true, name: true, role: true } } } },
+                createdBy: { select: { id: true, name: true } }
+            }
+        });
+
+        return res.json(result);
+    } catch (error) {
+        console.error("Update group chat error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+// Delete a group chat (creator or admin only)
+app.delete("/api/group-chats/:id", authenticateToken, async (req, res) => {
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (isNaN(id)) return res.status(400).json({ message: "Invalid group ID." });
+
+        const group = await prisma.groupChat.findUnique({ where: { id } });
+        if (!group) return res.status(404).json({ message: "Group not found." });
+
+        const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+        if (!user) return res.status(404).json({ message: "User not found." });
+
+        const isOwner = group.createdById === user.id;
+        const canDelete = isOwner || user.role === "ADMIN" || user.role === "DIRECTOR" || user.role === "IT";
+        if (!canDelete) {
+            return res.status(403).json({ message: "You don't have permission to delete this group." });
+        }
+
+        await prisma.groupChat.delete({ where: { id } });
+        return res.json({ message: "Group chat deleted." });
+    } catch (error) {
+        console.error("Delete group chat error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+// Get group chat messages
+app.get("/api/group-chats/:id/messages", authenticateToken, async (req, res) => {
+    try {
+        const groupId = parseInt(req.params.id, 10);
+        if (isNaN(groupId)) return res.status(400).json({ message: "Invalid group ID." });
+
+        const membership = await prisma.groupChatMember.findUnique({
+            where: { groupId_userId: { groupId, userId: req.user.id } }
+        });
+        if (!membership) return res.status(403).json({ message: "You are not a member of this group." });
+
+        const messages = await prisma.groupChatMessage.findMany({
+            where: { groupId },
+            orderBy: { createdAt: "asc" },
+            take: 200
+        });
+        return res.json(messages);
+    } catch (error) {
+        console.error("Get group messages error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+// Send a message to a group
+app.post("/api/group-chats/:id/messages", authenticateToken, async (req, res) => {
+    try {
+        const groupId = parseInt(req.params.id, 10);
+        if (isNaN(groupId)) return res.status(400).json({ message: "Invalid group ID." });
+        const { content } = req.body;
+        if (!content || typeof content !== "string" || content.trim().length === 0) {
+            return res.status(400).json({ message: "Message content is required." });
+        }
+
+        const membership = await prisma.groupChatMember.findUnique({
+            where: { groupId_userId: { groupId, userId: req.user.id } }
+        });
+        if (!membership) return res.status(403).json({ message: "You are not a member of this group." });
+
+        const group = await prisma.groupChat.findUnique({ where: { id: groupId } });
+        const message = await prisma.groupChatMessage.create({
+            data: {
+                groupId,
+                senderId: req.user.id,
+                senderName: req.user.name,
+                content: content.trim()
+            }
+        });
+
+        // Notify all other members in real-time
+        const members = await prisma.groupChatMember.findMany({ where: { groupId } });
+        for (const m of members) {
+            if (m.userId !== req.user.id) {
+                await createNotification(m.userId, "group_chat", `New message in ${group.name}`, `${req.user.name}: ${content.trim().substring(0, 60)}`);
+                sseSend(m.userId, "group_message", {
+                    groupId,
+                    message
+                });
+            }
+        }
+
+        return res.status(201).json(message);
+    } catch (error) {
+        console.error("Send group message error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+// --- Broadcast Notification (Admin only) ---
+app.post("/api/notifications/broadcast", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { title, message, roles } = req.body;
+        if (!title || !message) {
+            return res.status(400).json({ message: "Title and message are required." });
+        }
+
+        const where = roles && roles.length > 0 ? { role: { in: roles } } : {};
+        const users = await prisma.user.findMany({ where, select: { id: true } });
+
+        for (const u of users) {
+            await createNotification(u.id, "broadcast", title, message);
+        }
+
+        return res.json({ message: `Broadcast sent to ${users.length} users.` });
+    } catch (error) {
+        console.error("Broadcast notification error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+// --- Contact API ---
+app.post("/api/contact", async (req, res) => {
+    try {
+        const { name, email, message, userId } = req.body;
+        if (!name || !email || !message) {
+            return res.status(400).json({ message: "Name, email, and message are required." });
+        }
+        const contact = await prisma.contactMessage.create({
+            data: {
+                name: name.trim(),
+                email: email.trim(),
+                message: message.trim(),
+                userId: userId ? parseInt(userId) : null
+            }
+        });
+        return res.status(201).json({ message: "Message sent.", contact });
+    } catch (error) {
+        console.error("Contact error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+// Get all contact messages (admin only)
+app.get("/api/contact", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const contacts = await prisma.contactMessage.findMany({ orderBy: { createdAt: "desc" } });
+        return res.json(contacts);
+    } catch (error) {
+        console.error("Get contacts error:", error);
         return res.status(500).json({ message: "Server error." });
     }
 });

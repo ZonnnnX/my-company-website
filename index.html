@@ -152,6 +152,38 @@
     .notif-item .notif-time{font-size:11px; color:var(--muted); opacity:.6; margin-top:4px}
     .notif-empty{padding:30px; text-align:center; color:var(--muted); font-size:13px}
 
+    /* --- Toast Notifications (Facebook-style) --- */
+    .toast-container{
+      position:fixed; top:80px; right:20px; z-index:9999;
+      display:flex; flex-direction:column; gap:10px;
+      max-width:380px; width:calc(100vw - 40px);
+      pointer-events:none;
+    }
+    .toast{
+      pointer-events:auto;
+      background:rgba(18,26,45,.97); border:1px solid var(--border);
+      border-left:4px solid var(--accent);
+      border-radius:12px; padding:12px 16px;
+      box-shadow:0 12px 40px rgba(0,0,0,.5);
+      display:flex; gap:12px; align-items:flex-start;
+      animation:toastIn .3s ease; backdrop-filter:blur(12px);
+      cursor:pointer;
+    }
+    .toast.success{border-left-color:var(--success)}
+    .toast.warning{border-left-color:var(--warning)}
+    .toast.error{border-left-color:var(--danger)}
+    .toast.message{border-left-color:var(--accent2)}
+    .toast.group{border-left-color:#b482ff}
+    .toast .toast-icon{font-size:20px; line-height:1.2}
+    .toast .toast-body{flex:1; min-width:0}
+    .toast .toast-title{font-size:13px; font-weight:700; color:var(--text)}
+    .toast .toast-msg{font-size:12px; color:var(--muted); margin-top:2px; word-break:break-word}
+    .toast .toast-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:0;line-height:1}
+    .toast .toast-close:hover{color:var(--text)}
+    .toast.out{animation:toastOut .3s ease forwards}
+    @keyframes toastIn{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
+    @keyframes toastOut{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(40px)}}
+
     /* --- Private Chat (Messenger-style) --- */
     .private-chat-toggle{
       display:none; position:fixed; bottom:20px; left:20px; z-index:1000;
@@ -213,6 +245,13 @@
     .private-chat-input button{width:40px;height:40px;border-radius:50%;border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center}
     .private-chat-back{background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:0 8px 0 0;display:none}
     .private-chat-back:hover{color:var(--text)}
+    .private-chat-tabs{display:flex;border-bottom:1px solid var(--border)}
+    .pchat-tab{flex:1;text-align:center;padding:9px 0;font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+    .pchat-tab:hover{color:var(--text)}
+    .pchat-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+    .group-chat-list{max-height:300px;overflow-y:auto}
+    .pchat-actions{padding:10px 12px;display:flex;gap:8px;border-bottom:1px solid rgba(255,255,255,.04)}
+    .pchat-actions button{flex:1;padding:6px 10px;font-size:12px}
 
     /* --- Enhanced Dropdown (Grouped) --- */
     .dropdown-content .group-label{
@@ -583,6 +622,9 @@
 </head>
 <body>
 
+  <!-- Toast Container (Facebook-style notifications) -->
+  <div class="toast-container" id="toast-container"></div>
+
   <!-- Auth Gate -->
   <div id="gate" class="gate" role="dialog" aria-modal="true" aria-labelledby="gate-title">
     <div class="gate-card">
@@ -613,6 +655,7 @@
           <input id="reg-name" type="text" autocomplete="name" placeholder="Full name" />
           <input id="reg-email" type="email" autocomplete="email" placeholder="Email address" />
           <input id="reg-password" type="password" autocomplete="new-password" placeholder="Password (min 6 characters)" />
+          <input id="reg-invite" type="text" autocomplete="off" placeholder="Mã mời (nếu có)" />
         </div>
         <div class="gate-actions" style="justify-content:space-between">
           <div class="small">Your account will require admin approval.</div>
@@ -637,12 +680,172 @@
 
       <!-- Admin Panel -->
       <div id="form-admin" class="auth-form">
-        <div class="pending-screen" style="text-align:left; padding:20px 0">
-          <h3 style="margin-bottom:12px">&#128081; Admin Panel &mdash; User Management <span id="pending-badge" style="display:none;background:var(--danger);color:#fff;font-size:11px;padding:2px 8px;border-radius:999px;vertical-align:middle"></span></h3>
-          <p style="color:var(--muted); font-size:13.5px; margin-bottom:16px">Approve or reject user registration requests.</p>
-          <div id="admin-users-list" style="overflow-x:auto">
-            <div style="text-align:center; padding:20px; color:var(--muted)"><span class="spinner"></span> Loading users...</div>
+        <div style="padding:20px 0">
+          <h3 style="margin-bottom:12px">&#128081; Admin Panel <span id="pending-badge" style="display:none;background:var(--danger);color:#fff;font-size:11px;padding:2px 8px;border-radius:999px;vertical-align:middle"></span></h3>
+
+          <!-- Admin Tabs -->
+          <div class="tabs admin-tabs">
+            <div class="tab active" data-admintab="users" onclick="switchAdminTab('users')">&#128101; Người dùng</div>
+            <div class="tab" data-admintab="roles" onclick="switchAdminTab('roles')">&#128273; Quản lý Role</div>
+            <div class="tab" data-admintab="docs" onclick="switchAdminTab('docs')">&#128196; Tài liệu</div>
+            <div class="tab" data-admintab="invites" onclick="switchAdminTab('invites')">&#9993; Mời qua Email</div>
+            <div class="tab" data-admintab="content" onclick="switchAdminTab('content')">&#128221; Nội dung</div>
           </div>
+
+          <!-- Tab: Users -->
+          <div class="admin-tab-content" id="admin-tab-users">
+            <p style="color:var(--muted); font-size:13.5px; margin-bottom:16px">Duyệt tài khoản, đặt role và nhóm trực tiếp.</p>
+            <div id="admin-users-list" style="overflow-x:auto">
+              <div style="text-align:center; padding:20px; color:var(--muted)"><span class="spinner"></span> Loading users...</div>
+            </div>
+          </div>
+
+          <!-- Tab: Roles -->
+          <div class="admin-tab-content" id="admin-tab-roles" style="display:none">
+            <p style="color:var(--muted); font-size:13.5px; margin-bottom:16px">Thêm role tùy chỉnh. Các role này sẽ xuất hiện trong danh sách chọn khi duyệt/phân quyền tài khoản.</p>
+            <div id="admin-roles-list"></div>
+            <div class="full-row" style="margin-top:14px">
+              <input id="new-role-name" type="text" placeholder="Nhập tên role mới (VD: Thực thi nhóm 4)" />
+              <button class="btn primary" onclick="addCustomRole()" style="align-self:flex-start"><span class="dot"></span> + Thêm Role</button>
+            </div>
+            <div class="error" id="role-error"></div>
+            <div class="success-msg" id="role-success"></div>
+          </div>
+
+          <!-- Tab: Docs -->
+          <div class="admin-tab-content" id="admin-tab-docs" style="display:none">
+            <p style="color:var(--muted); font-size:13.5px; margin-bottom:16px">Quản lý danh mục tài liệu (thêm, sửa, xóa).</p>
+            <div id="admin-doc-manager">
+              <div id="admin-doc-list"></div>
+              <div class="doc-manager-form">
+                <div class="full">
+                  <label>Tên mục</label>
+                  <input id="admin-doc-name" type="text" placeholder="VD: Nhóm A, Quỹ ABC, VPS ..." />
+                </div>
+                <div class="full">
+                  <label>Google Drive Link</label>
+                  <input id="admin-doc-link" type="url" placeholder="https://drive.google.com/..." />
+                </div>
+                <div>
+                  <label>Danh mục (Category)</label>
+                  <select id="admin-doc-category">
+                    <option value="Group">Group</option>
+                    <option value="Fund">Fund</option>
+                    <option value="VPS">VPS</option>
+                    <option value="Profile">Profile</option>
+                  </select>
+                </div>
+                <div class="full" style="margin-top:4px">
+                  <label>Vai trò được phép xem:</label>
+                  <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px" id="admin-doc-roles-container"></div>
+                </div>
+                <div style="display:flex;align-items:flex-end">
+                  <button class="btn primary" id="admin-doc-add-btn" onclick="addAdminDocItem()" style="width:100%">+ Thêm mục</button>
+                </div>
+                <div class="form-actions">
+                  <span class="form-msg" id="admin-doc-msg"></span>
+                  <button class="btn" onclick="switchAdminTab('users')" style="padding:8px 20px">Đóng</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab: Invites -->
+          <div class="admin-tab-content" id="admin-tab-invites" style="display:none">
+            <p style="color:var(--muted); font-size:13.5px; margin-bottom:16px">Tạo liên kết mời qua email. Người nhận bấm link sẽ được tự động đăng ký và cấp quyền đúng role/nhóm.</p>
+            <div class="full-row">
+              <input id="invite-email" type="email" placeholder="Email người được mời (tùy chọn)" />
+              <select id="invite-role" style="flex:1; min-width:200px; padding:12px 12px; border-radius:12px; border:1px solid var(--border); background:rgba(255,255,255,.04); color:var(--text); outline:none"></select>
+              <select id="invite-group" style="flex:1; min-width:150px; padding:12px 12px; border-radius:12px; border:1px solid var(--border); background:rgba(255,255,255,.04); color:var(--text); outline:none">
+                <option value="General">General</option>
+              </select>
+              <button class="btn primary" onclick="createInviteLink()" style="white-space:nowrap"><span class="dot"></span> Tạo Link</button>
+            </div>
+            <div id="invite-result" style="margin-top:10px"></div>
+            <div id="admin-invites-list" style="margin-top:16px"></div>
+            <div class="error" id="invite-error"></div>
+          </div>
+
+          <!-- Tab: Content -->
+          <div class="admin-tab-content" id="admin-tab-content" style="display:none">
+            <p style="color:var(--muted); font-size:13.5px; margin-bottom:16px">Chỉnh sửa nội dung hiển thị trên website (trang chủ, giới thiệu, dịch vụ, liên hệ, footer).</p>
+            <div id="admin-content-editor" style="max-height:60vh;overflow-y:auto;padding-right:6px">
+              <div class="card" style="margin-bottom:12px">
+                <h4 style="margin:0 0 10px;font-size:14px">&#127968; Hero (Trang chủ)</h4>
+                <div class="full-row" style="margin-bottom:8px">
+                  <label style="font-size:12px;color:var(--muted)">Tiêu đề chính</label>
+                  <input id="content-hero-title" type="text" />
+                </div>
+                <div class="full-row" style="margin-bottom:8px">
+                  <label style="font-size:12px;color:var(--muted)">Mô tả (Lead)</label>
+                  <input id="content-hero-lead" type="text" />
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                  <div><label style="font-size:12px;color:var(--muted)">Feature 1</label><input id="content-feature1-title" type="text" placeholder="Tiêu đề" /><input id="content-feature1-desc" type="text" placeholder="Mô tả" style="margin-top:6px" /></div>
+                  <div><label style="font-size:12px;color:var(--muted)">Feature 2</label><input id="content-feature2-title" type="text" placeholder="Tiêu đề" /><input id="content-feature2-desc" type="text" placeholder="Mô tả" style="margin-top:6px" /></div>
+                  <div><label style="font-size:12px;color:var(--muted)">Feature 3</label><input id="content-feature3-title" type="text" placeholder="Tiêu đề" /><input id="content-feature3-desc" type="text" placeholder="Mô tả" style="margin-top:6px" /></div>
+                </div>
+              </div>
+              <div class="card" style="margin-bottom:12px">
+                <h4 style="margin:0 0 10px;font-size:14px">&#128200; Quick Facts</h4>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                  <div><label style="font-size:12px;color:var(--muted)">Industry</label><input id="content-qf-industry" type="text" /></div>
+                  <div><label style="font-size:12px;color:var(--muted)">HQ</label><input id="content-qf-hq" type="text" /></div>
+                  <div style="grid-column:1/-1"><label style="font-size:12px;color:var(--muted)">Ghi chú</label><input id="content-qf-note" type="text" /></div>
+                </div>
+              </div>
+              <div class="card" style="margin-bottom:12px">
+                <h4 style="margin:0 0 10px;font-size:14px">&#128226; Announcements</h4>
+                <div id="content-announcements-list"></div>
+                <div style="display:flex;gap:6px;margin-top:8px">
+                  <input id="content-announcement-new-title" type="text" placeholder="Tiêu đề mới" style="flex:1" />
+                  <input id="content-announcement-new-text" type="text" placeholder="Nội dung" style="flex:1" />
+                  <button class="btn" onclick="addContentAnnouncement()" style="padding:8px 12px;font-size:12px">+ Thêm</button>
+                </div>
+              </div>
+              <div class="card" style="margin-bottom:12px">
+                <h4 style="margin:0 0 10px;font-size:14px">&#128100; Giới thiệu (About)</h4>
+                <div class="full-row" style="margin-bottom:8px">
+                  <label style="font-size:12px;color:var(--muted)">Sứ mệnh</label>
+                  <textarea id="content-about-mission" rows="3" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text);outline:none;resize:vertical;font-family:inherit;font-size:13px"></textarea>
+                </div>
+                <div class="full-row" style="margin-bottom:8px">
+                  <label style="font-size:12px;color:var(--muted)">Giá trị cốt lõi (mỗi dòng một giá trị)</label>
+                  <textarea id="content-about-values" rows="4" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text);outline:none;resize:vertical;font-family:inherit;font-size:13px"></textarea>
+                </div>
+                <div class="full-row">
+                  <label style="font-size:12px;color:var(--muted)">Tổng quan công ty</label>
+                  <textarea id="content-about-overview" rows="3" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text);outline:none;resize:vertical;font-family:inherit;font-size:13px"></textarea>
+                </div>
+              </div>
+              <div class="card" style="margin-bottom:12px">
+                <h4 style="margin:0 0 10px;font-size:14px">&#128736; Dịch vụ (Services)</h4>
+                <div id="content-services-list"></div>
+                <div style="display:flex;gap:6px;margin-top:8px">
+                  <input id="content-service-new-title" type="text" placeholder="Tên dịch vụ" style="flex:1" />
+                  <input id="content-service-new-desc" type="text" placeholder="Mô tả" style="flex:1" />
+                  <button class="btn" onclick="addContentService()" style="padding:8px 12px;font-size:12px">+ Thêm</button>
+                </div>
+              </div>
+              <div class="card" style="margin-bottom:12px">
+                <h4 style="margin:0 0 10px;font-size:14px">&#128231; Liên hệ (Contact)</h4>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                  <div><label style="font-size:12px;color:var(--muted)">Email</label><input id="content-contact-email" type="text" /></div>
+                  <div><label style="font-size:12px;color:var(--muted)">Thời gian phản hồi</label><input id="content-contact-response" type="text" /></div>
+                  <div style="grid-column:1/-1"><label style="font-size:12px;color:var(--muted)">Văn phòng</label><textarea id="content-contact-office" rows="2" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text);outline:none;resize:vertical;font-family:inherit;font-size:13px"></textarea></div>
+                </div>
+              </div>
+              <div class="card" style="margin-bottom:12px">
+                <h4 style="margin:0 0 10px;font-size:14px">&#128279; Footer</h4>
+                <input id="content-footer" type="text" />
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin-top:14px">
+              <button class="btn primary" onclick="saveSiteContentFromAdmin()"><span class="dot"></span> Lưu nội dung</button>
+              <span class="form-msg" id="admin-content-msg" style="color:var(--accent2);font-size:12.5px"></span>
+            </div>
+          </div>
+
           <div style="margin-top:16px">
             <button class="btn" id="admin-logout-btn" type="button">&#128274; Lock &amp; Sign Out</button>
           </div>
@@ -704,32 +907,32 @@
     <div class="page-view" id="page-home">
       <div class="hero">
         <div class="hero-card">
-          <h1>Trusted solutions for your next milestone.</h1>
-          <p class="lead">A private corporate site with secure navigation, clean layout, and quick content sections.</p>
+          <h1 id="home-hero-title">Trusted solutions for your next milestone.</h1>
+          <p class="lead" id="home-hero-lead">A private corporate site with secure navigation, clean layout, and quick content sections.</p>
           <div class="buttons">
             <a class="btn primary" href="#services"><span class="dot"></span>Explore services</a>
             <a class="btn" href="#contact">Get in touch</a>
           </div>
-          <div class="grid" style="margin-top:18px">
-            <div class="feature"><h3>Secure by design</h3><p>Server-side authentication with role-based access control.</p></div>
-            <div class="feature"><h3>Modern UI</h3><p>Responsive layout, accessible components, and a polished dark theme.</p></div>
-            <div class="feature"><h3>Easy to customize</h3><p>Update copy, images, and links without touching the structure.</p></div>
+          <div class="grid" style="margin-top:18px" id="home-features-grid">
+            <div class="feature"><h3 id="home-feature1-title">Secure by design</h3><p id="home-feature1-desc">Server-side authentication with role-based access control.</p></div>
+            <div class="feature"><h3 id="home-feature2-title">Modern UI</h3><p id="home-feature2-desc">Responsive layout, accessible components, and a polished dark theme.</p></div>
+            <div class="feature"><h3 id="home-feature3-title">Easy to customize</h3><p id="home-feature3-desc">Update copy, images, and links without touching the structure.</p></div>
           </div>
         </div>
         <div class="hero-card" style="display:flex; flex-direction:column; gap:14px">
           <div>
             <div style="color:var(--muted); font-weight:600; font-size:13.5px; margin-bottom:8px">Quick facts</div>
-            <div class="card" style="padding:14px">
+            <div class="card" style="padding:14px" id="home-quickfacts">
               <div style="display:flex; justify-content:space-between; gap:10px">
-                <div><div style="color:var(--muted); font-size:13px">Industry</div><div style="font-weight:700">[Your industry]</div></div>
-                <div><div style="color:var(--muted); font-size:13px">HQ</div><div style="font-weight:700">[City, Country]</div></div>
+                <div><div style="color:var(--muted); font-size:13px">Industry</div><div style="font-weight:700" id="home-qf-industry">[Your industry]</div></div>
+                <div><div style="color:var(--muted); font-size:13px">HQ</div><div style="font-weight:700" id="home-qf-hq">[City, Country]</div></div>
               </div>
-              <div style="margin-top:12px; color:var(--muted); font-size:13.5px">Internal documents and announcements can be linked here.</div>
+              <div style="margin-top:12px; color:var(--muted); font-size:13.5px" id="home-qf-note">Internal documents and announcements can be linked here.</div>
             </div>
           </div>
           <div>
             <div style="color:var(--muted); font-weight:600; font-size:13.5px; margin-bottom:8px">Announcements</div>
-            <div class="card" style="padding:14px">
+            <div class="card" style="padding:14px" id="home-announcements">
               <div style="font-weight:700">&bull; New policy update</div>
               <div style="color:var(--muted); font-size:13.5px; margin-top:6px">[Date] &mdash; Replace with your latest update.</div>
               <div style="border-top:1px solid var(--border); margin:12px 0"></div>
@@ -936,14 +1139,8 @@
   </div>
 
   <script>
-    // === Configuration ===
-    // Auto-detect API base URL: use the same origin as the page is served from
-    // This allows access via IP address, domain name, or localhost without hardcoding
-    var API_BASE = window.location.origin;
-    // Fallback for local development if running file:// protocol
-    if (API_BASE === "null" || window.location.protocol === "file:") {
-        API_BASE = "http://localhost:5000";
-    }
+    // === Configuration (Static Website — all data stored in localStorage) ===
+    // No backend server needed! Everything works in the browser.
     var TOKEN_KEY = "private_access_token";
     var USER_KEY = "private_access_user";
 
@@ -952,6 +1149,54 @@
     var LOCAL_MSG_KEY = '_pvt_chat_data';
     var LOCAL_PVT_MSG_KEY = '_pvt_pvt_msg_data';
     var LOCAL_REPORTS_KEY = '_pvt_reports_data';
+    var LOCAL_CUSTOM_ROLES_KEY = '_pvt_custom_roles';
+    var LOCAL_INVITES_KEY = '_pvt_invites';
+
+    // Default system roles + group roles (RBAC)
+    var DEFAULT_ROLES = ['ADMIN','DIRECTOR','LEADER','IT','ACCOUNTING','IMPLEMENTATION','EMPLOYEE'];
+    var GROUP_ROLES = ['GROUP1','GROUP2','GROUP3','FUND1'];
+
+    // Full-access roles for Document Repository
+    var FULL_ACCESS_ROLES = ['ADMIN','DIRECTOR','ACCOUNTING','IT','LEADER'];
+
+    // Roles that can create/manage group chats
+    var GROUP_MANAGER_ROLES = ['ADMIN','IT','DIRECTOR'];
+
+    function getCustomRoles() {
+      try { return JSON.parse(localStorage.getItem(LOCAL_CUSTOM_ROLES_KEY)) || []; } catch(e) { return []; }
+    }
+    function saveCustomRoles(roles) {
+      localStorage.setItem(LOCAL_CUSTOM_ROLES_KEY, JSON.stringify(roles));
+    }
+    function getAllRoles() {
+      return DEFAULT_ROLES.concat(GROUP_ROLES).concat(getCustomRoles());
+    }
+    function getGroupRoleName(role) {
+      var map = {
+        'GROUP1':'Thực thi nhóm 1',
+        'GROUP2':'Thực thi nhóm 2',
+        'GROUP3':'Thực thi nhóm 3',
+        'FUND1':'Quỹ chứng 1'
+      };
+      return map[role] || role;
+    }
+    function isGroupRole(role) {
+      return GROUP_ROLES.indexOf(role) !== -1;
+    }
+    function getRoleGroup(user) {
+      if (!user) return null;
+      if (user.role === 'GROUP1') return 'GROUP1';
+      if (user.role === 'GROUP2') return 'GROUP2';
+      if (user.role === 'GROUP3') return 'GROUP3';
+      if (user.role === 'FUND1') return 'FUND1';
+      return null;
+    }
+    function getLocalInvites() {
+      try { return JSON.parse(localStorage.getItem(LOCAL_INVITES_KEY)) || []; } catch(e) { return []; }
+    }
+    function saveLocalInvites(invites) {
+      localStorage.setItem(LOCAL_INVITES_KEY, JSON.stringify(invites));
+    }
 
     function getLocalUsers() {
         try { return JSON.parse(localStorage.getItem(LOCAL_USERS_KEY)) || []; } catch(e) { return []; }
@@ -1026,21 +1271,44 @@
             }
             var maxId = 0;
             for (var ui3 = 0; ui3 < users.length; ui3++) { if (users[ui3].id > maxId) maxId = users[ui3].id; }
+            var newRole = 'EMPLOYEE';
+            var newStatus = 'PENDING';
+            var newGroup = 'General';
+            var invite = null;
+            // Check invite code if provided
+            if (body.inviteCode) {
+                var invites = getLocalInvites();
+                for (var iiv = 0; iiv < invites.length; iiv++) {
+                    if (invites[iiv].code === body.inviteCode) { invite = invites[iiv]; break; }
+                }
+                if (!invite) throw new Error('Mã mời không hợp lệ hoặc đã bị xóa.');
+                if (invite.usedBy) throw new Error('Mã mời này đã được sử dụng.');
+                if (invite.email && invite.email !== body.email.toLowerCase().trim()) {
+                    throw new Error('Mã mời này chỉ dành cho email: ' + invite.email);
+                }
+                newRole = invite.role || 'EMPLOYEE';
+                newStatus = 'APPROVED';
+                newGroup = invite.group || 'General';
+                invite.usedBy = maxId + 1;
+                invite.usedByName = body.name.trim();
+                invite.usedAt = new Date().toISOString();
+                saveLocalInvites(invites);
+            }
             var newUser = {
                 id: maxId + 1,
                 name: body.name.trim(),
                 email: body.email.toLowerCase().trim(),
                 password: body.password,
-                role: 'EMPLOYEE',
-                status: 'PENDING',
-                group: 'General',
+                role: newRole,
+                status: newStatus,
+                group: newGroup,
                 permissions: '{}',
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString()
             };
             users.push(newUser);
             saveLocalUsers(users);
-            return { message: 'Registration successful. Your account is pending admin approval.', user: { id: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role, status: newUser.status } };
+            return { message: invite ? 'Đăng ký thành công! Tài khoản của bạn đã được cấp quyền qua mã mời.' : 'Registration successful. Your account is pending admin approval.', user: { id: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role, status: newUser.status } };
         }
 
         if (path === '/api/auth/me' && method === 'GET') {
@@ -1098,6 +1366,118 @@
                 }
             }
             throw new Error('User not found.');
+        }
+
+        var groupMatch = path.match(/^\/api\/admin\/users\/(\d+)\/group$/);
+        if (groupMatch && method === 'PATCH') {
+            var users = getLocalUsers();
+            var gid = parseInt(groupMatch[1]);
+            for (var ui8b = 0; ui8b < users.length; ui8b++) {
+                if (users[ui8b].id === gid) {
+                    users[ui8b].group = body.group;
+                    users[ui8b].updatedAt = new Date().toISOString();
+                    saveLocalUsers(users);
+                    return { message: 'User group updated to ' + body.group + '.', user: users[ui8b] };
+                }
+            }
+            throw new Error('User not found.');
+        }
+
+        var userDelMatch = path.match(/^\/api\/admin\/users\/(\d+)$/);
+        if (userDelMatch && method === 'DELETE') {
+            var users = getLocalUsers();
+            var delUserId = parseInt(userDelMatch[1]);
+            var newUsersList = [];
+            var foundDel = false;
+            for (var ui8c = 0; ui8c < users.length; ui8c++) {
+                if (users[ui8c].id === delUserId) { foundDel = true; continue; }
+                newUsersList.push(users[ui8c]);
+            }
+            if (!foundDel) throw new Error('User not found.');
+            saveLocalUsers(newUsersList);
+            // Also remove their private messages
+            var allPvt = getLocalPvtMsgs();
+            allPvt = allPvt.filter(function(m) { return m.senderId !== delUserId && m.receiverId !== delUserId; });
+            saveLocalPvtMsgs(allPvt);
+            // Also remove them from any group chats
+            var allGroups = getLocalGroupChats();
+            for (var giDel = 0; giDel < allGroups.length; giDel++) {
+                if (allGroups[giDel].members) {
+                    allGroups[giDel].members = allGroups[giDel].members.filter(function(m) { return m !== delUserId; });
+                }
+            }
+            saveLocalGroupChats(allGroups);
+            return { message: 'User deleted.' };
+        }
+
+        // === CUSTOM ROLES ===
+        if (path === '/api/admin/custom-roles' && method === 'GET') {
+            return getCustomRoles();
+        }
+        if (path === '/api/admin/custom-roles' && method === 'POST') {
+            var customRoles = getCustomRoles();
+            var newRoleName = (body.name || '').trim().toUpperCase();
+            if (!newRoleName) throw new Error('Tên role không được để trống.');
+            if (DEFAULT_ROLES.indexOf(newRoleName) !== -1) throw new Error('Role "' + newRoleName + '" đã tồn tại trong hệ thống.');
+            if (GROUP_ROLES.indexOf(newRoleName) !== -1) throw new Error('Role "' + newRoleName + '" đã tồn tại trong hệ thống.');
+            for (var cri = 0; cri < customRoles.length; cri++) {
+                if (customRoles[cri].name.toUpperCase() === newRoleName) throw new Error('Role "' + newRoleName + '" đã tồn tại.');
+            }
+            var newRole = { name: newRoleName, createdAt: new Date().toISOString() };
+            customRoles.push(newRole);
+            saveCustomRoles(customRoles);
+            return newRole;
+        }
+        var customRoleDelMatch = path.match(/^\/api\/admin\/custom-roles\/(.+)$/);
+        if (customRoleDelMatch && method === 'DELETE') {
+            var delRoleName = decodeURIComponent(customRoleDelMatch[1]).toUpperCase();
+            var customRoles = getCustomRoles();
+            var foundRole = false;
+            for (var cdi = 0; cdi < customRoles.length; cdi++) {
+                if (customRoles[cdi].name.toUpperCase() === delRoleName) { customRoles.splice(cdi, 1); foundRole = true; break; }
+            }
+            if (!foundRole) throw new Error('Role không tồn tại.');
+            saveCustomRoles(customRoles);
+            return { message: 'Đã xóa role ' + delRoleName + '.' };
+        }
+
+        // === INVITES ===
+        if (path === '/api/admin/invites' && method === 'GET') {
+            return getLocalInvites();
+        }
+        if (path === '/api/admin/invites' && method === 'POST') {
+            var invites = getLocalInvites();
+            var inviteCode = 'INV' + Date.now().toString(36).toUpperCase();
+            var newInvite = {
+                id: invites.length > 0 ? invites[invites.length - 1].id + 1 : 1,
+                code: inviteCode,
+                email: body.email ? body.email.toLowerCase().trim() : null,
+                role: body.role || 'EMPLOYEE',
+                group: body.group || 'General',
+                createdById: currentUser ? currentUser.id : null,
+                createdByName: currentUser ? currentUser.name : null,
+                createdAt: new Date().toISOString(),
+                usedBy: null,
+                usedByName: null,
+                usedAt: null
+            };
+            invites.push(newInvite);
+            saveLocalInvites(invites);
+            return newInvite;
+        }
+        var inviteDelMatch = path.match(/^\/api\/admin\/invites\/(\d+)$/);
+        if (inviteDelMatch && method === 'DELETE') {
+            var invites = getLocalInvites();
+            var delInviteId = parseInt(inviteDelMatch[1]);
+            var newInvites = [];
+            var foundInvite = false;
+            for (var ivi = 0; ivi < invites.length; ivi++) {
+                if (invites[ivi].id === delInviteId) { foundInvite = true; continue; }
+                newInvites.push(invites[ivi]);
+            }
+            if (!foundInvite) throw new Error('Mã mời không tồn tại.');
+            saveLocalInvites(newInvites);
+            return { message: 'Đã xóa mã mời.' };
         }
 
         // === CHAT ===
@@ -1263,6 +1643,156 @@
         var acDelMatch = path.match(/^\/api\/access-codes\/(\d+)$/);
         if (acDelMatch && method === 'DELETE') return { message: 'Deleted.' };
 
+        // === TEAM MEMBERS ===
+        if (path === '/api/team-members' && method === 'GET') {
+            var team = getLocalTeamMembers();
+            var activeTeam = [];
+            for (var ti = 0; ti < team.length; ti++) {
+                if (team[ti].isActive !== false) activeTeam.push(team[ti]);
+            }
+            activeTeam.sort(function(a, b) { return (a.displayOrder || 0) - (b.displayOrder || 0); });
+            return activeTeam;
+        }
+
+        if (path === '/api/team-members/all' && method === 'GET') {
+            var team = getLocalTeamMembers();
+            return team;
+        }
+
+        if (path === '/api/team-members' && method === 'POST') {
+            var team = getLocalTeamMembers();
+            var maxTeamId = 0;
+            for (var ti2 = 0; ti2 < team.length; ti2++) { if (team[ti2].id > maxTeamId) maxTeamId = team[ti2].id; }
+            var newMember = {
+                id: maxTeamId + 1,
+                name: (body.name || '').trim(),
+                position: (body.position || '').trim(),
+                role: body.role || 'EMPLOYEE',
+                description: (body.description || '').trim(),
+                avatarIcon: body.avatarIcon || '&#128100;',
+                roleClass: body.roleClass || 'role-placeholder',
+                displayOrder: parseInt(body.displayOrder) || 0,
+                isActive: true
+            };
+            team.push(newMember);
+            saveLocalTeamMembers(team);
+            return newMember;
+        }
+
+        var teamPutMatch = path.match(/^\/api\/team-members\/(\d+)$/);
+        if (teamPutMatch && method === 'PUT') {
+            var team = getLocalTeamMembers();
+            var teamId = parseInt(teamPutMatch[1]);
+            for (var ti3 = 0; ti3 < team.length; ti3++) {
+                if (team[ti3].id === teamId) {
+                    if (body.name !== undefined) team[ti3].name = (body.name || '').trim();
+                    if (body.position !== undefined) team[ti3].position = (body.position || '').trim();
+                    if (body.role !== undefined) team[ti3].role = body.role;
+                    if (body.description !== undefined) team[ti3].description = (body.description || '').trim();
+                    if (body.avatarIcon !== undefined) team[ti3].avatarIcon = body.avatarIcon;
+                    if (body.roleClass !== undefined) team[ti3].roleClass = body.roleClass;
+                    if (body.displayOrder !== undefined) team[ti3].displayOrder = parseInt(body.displayOrder) || 0;
+                    if (body.isActive !== undefined) team[ti3].isActive = body.isActive;
+                    saveLocalTeamMembers(team);
+                    return team[ti3];
+                }
+            }
+            throw new Error('Team member not found.');
+        }
+
+        var teamDelMatch = path.match(/^\/api\/team-members\/(\d+)$/);
+        if (teamDelMatch && method === 'DELETE') {
+            var team = getLocalTeamMembers();
+            var delTeamId = parseInt(teamDelMatch[1]);
+            var newTeam = [];
+            for (var ti4 = 0; ti4 < team.length; ti4++) { if (team[ti4].id !== delTeamId) newTeam.push(team[ti4]); }
+            saveLocalTeamMembers(newTeam);
+            return { message: 'Team member deleted.' };
+        }
+
+        // === SITE CONTENT ===
+        if (path === '/api/site-content' && method === 'GET') {
+            return getSiteContent();
+        }
+        if (path === '/api/site-content' && method === 'PUT') {
+            var sc = getSiteContent();
+            if (body.hero !== undefined) sc.hero = body.hero;
+            if (body.quickFacts !== undefined) sc.quickFacts = body.quickFacts;
+            if (body.announcements !== undefined) sc.announcements = body.announcements;
+            if (body.about !== undefined) sc.about = body.about;
+            if (body.services !== undefined) sc.services = body.services;
+            if (body.contact !== undefined) sc.contact = body.contact;
+            if (body.footer !== undefined) sc.footer = body.footer;
+            saveSiteContent(sc);
+            return sc;
+        }
+
+        // === GROUP CHAT ===
+        if (path === '/api/group-chats' && method === 'GET') {
+            var groups = getLocalGroupChats();
+            return groups;
+        }
+        if (path === '/api/group-chats' && method === 'POST') {
+            var groups = getLocalGroupChats();
+            var maxGid = 0;
+            for (var gi = 0; gi < groups.length; gi++) { if (groups[gi].id > maxGid) maxGid = groups[gi].id; }
+            var newGroup = {
+                id: maxGid + 1,
+                name: (body.name || '').trim(),
+                createdById: currentUser.id,
+                createdByName: currentUser.name,
+                members: [currentUser.id],
+                createdAt: new Date().toISOString()
+            };
+            groups.push(newGroup);
+            saveLocalGroupChats(groups);
+            return newGroup;
+        }
+        var groupMsgsMatch = path.match(/^\/api\/group-chats\/(\d+)\/messages$/);
+        if (groupMsgsMatch && method === 'GET') {
+            var groupId = parseInt(groupMsgsMatch[1]);
+            var groups = getLocalGroupChats();
+            for (var gi2 = 0; gi2 < groups.length; gi2++) {
+                if (groups[gi2].id === groupId) {
+                    return groups[gi2].messages || [];
+                }
+            }
+            throw new Error('Group not found.');
+        }
+        if (groupMsgsMatch && method === 'POST') {
+            var groupId = parseInt(groupMsgsMatch[1]);
+            var groups = getLocalGroupChats();
+            for (var gi3 = 0; gi3 < groups.length; gi3++) {
+                if (groups[gi3].id === groupId) {
+                    if (!groups[gi3].messages) groups[gi3].messages = [];
+                    var msgsG = groups[gi3].messages;
+                    var maxGMsgId = 0;
+                    for (var gmi = 0; gmi < msgsG.length; gmi++) { if (msgsG[gmi].id > maxGMsgId) maxGMsgId = msgsG[gmi].id; }
+                    var gmsg = { id: maxGMsgId + 1, senderId: currentUser.id, senderName: currentUser.name, senderRole: currentUser.role, content: (body.content || '').trim(), createdAt: new Date().toISOString() };
+                    msgsG.push(gmsg);
+                    saveLocalGroupChats(groups);
+                    return gmsg;
+                }
+            }
+            throw new Error('Group not found.');
+        }
+        var groupAddMemberMatch = path.match(/^\/api\/group-chats\/(\d+)\/members$/);
+        if (groupAddMemberMatch && method === 'POST') {
+            var groupId = parseInt(groupAddMemberMatch[1]);
+            var groups = getLocalGroupChats();
+            for (var gi4 = 0; gi4 < groups.length; gi4++) {
+                if (groups[gi4].id === groupId) {
+                    if (!groups[gi4].members) groups[gi4].members = [];
+                    if (groups[gi4].members.indexOf(parseInt(body.userId)) === -1) {
+                        groups[gi4].members.push(parseInt(body.userId));
+                    }
+                    saveLocalGroupChats(groups);
+                    return groups[gi4];
+                }
+            }
+            throw new Error('Group not found.');
+        }
+
         throw new Error('API endpoint not available offline: ' + method + ' ' + path);
     }
 
@@ -1279,6 +1809,7 @@
     var regName = document.getElementById('reg-name');
     var regEmail = document.getElementById('reg-email');
     var regPassword = document.getElementById('reg-password');
+    var regInvite = document.getElementById('reg-invite');
     var registerBtn = document.getElementById('register-btn');
     var registerError = document.getElementById('register-error');
     var registerSuccess = document.getElementById('register-success');
@@ -1317,55 +1848,80 @@
       if (formEl) formEl.classList.add('active');
     }
 
-    // === Connection Check ===
-    async function checkBackendConnection() {
-      try {
-        var res = await fetch(API_BASE + '/api/health', { method: 'GET', signal: AbortSignal.timeout(3000) });
-        if (res.ok) return true;
-        return false;
-      } catch (e) {
-        return false;
-      }
-    }
+// === API Calls (Hybrid mode: try real backend first, fallback to localStorage) ===
+    var API_BASE = '';
+    var API_OFFLINE = false;
+    var API_TIMEOUT = 8000;
 
-    // === API Calls ===
+    // Determine backend base URL from current host if page is served by backend
+    function detectApiBase() {
+      var proto = window.location.protocol;
+      var host = window.location.host;
+      // If already served from the backend (port 5000), use same origin
+      if (host && (host.indexOf(':5000') !== -1)) {
+        return '';
+      }
+      // Otherwise point to localhost:5000
+      return 'http://localhost:5000';
+    }
+    API_BASE = detectApiBase();
+
     async function api(path, options) {
-      // Try localStorage backend first (works offline)
-      try {
-        return await localStorageApi(path, options);
-      } catch (e) {
-        // If localStorage backend throws, try real backend
-      }
-      if (!options) options = {};
-      var headers = { 'Content-Type': 'application/json' };
-      if (options.headers) {
-        for (var k in options.headers) headers[k] = options.headers[k];
-      }
+      options = options || {};
+      var method = (options.method || 'GET').toUpperCase();
+      var headers = options.headers || {};
       var token = getToken();
       if (token) headers['Authorization'] = 'Bearer ' + token;
-      var res;
-      try {
-        res = await fetch(API_BASE + path, {
-          method: options.method || 'GET',
-          headers: headers,
-          body: options.body || null
-        });
-      } catch (err) {
-        // Network error — backend might be offline
-        var isConnected = await checkBackendConnection();
-        if (!isConnected) {
-          throw new Error('Cannot reach the server. Please make sure the backend is running on ' + API_BASE);
+      if (options.body) headers['Content-Type'] = 'application/json';
+
+      // Try real backend first (unless we've determined we're offline)
+      if (!API_OFFLINE) {
+        try {
+          var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+          var timer = null;
+          if (controller) {
+            timer = setTimeout(function() { controller.abort(); }, API_TIMEOUT);
+          }
+          var resp = await fetch(API_BASE + path, {
+            method: method,
+            headers: headers,
+            body: options.body || undefined,
+            credentials: 'include',
+            signal: controller ? controller.signal : undefined
+          });
+          if (timer) clearTimeout(timer);
+          var data = null;
+          try { data = await resp.json(); } catch(e) { data = null; }
+          if (resp.status >= 200 && resp.status < 300) {
+            return data;
+          }
+          // Backend responded with an error - throw so caller can handle
+          var err = new Error((data && data.message) ? data.message : ('Request failed (' + resp.status + ')'));
+          err.status = resp.status;
+          err.data = data;
+          throw err;
+        } catch (fetchErr) {
+          // Abort / network failure => fall back to localStorage offline mode
+          if (fetchErr && (fetchErr.name === 'AbortError' || fetchErr.status || (fetchErr.data))) {
+            // Server reachable but error/abort: still try offline fallback for read-only where sensible,
+            // but for auth/admin operations we should surface the real error.
+            if (fetchErr.status) {
+              throw fetchErr;
+            }
+          }
+          // Network error => offline mode
+          API_OFFLINE = true;
+          // fall through to localStorage
         }
-        throw new Error('Network error: ' + err.message);
       }
-      var data;
-      try {
-        data = await res.json();
-      } catch (err) {
-        throw new Error('Invalid response from server (status ' + res.status + ').');
-      }
-      if (!res.ok) throw new Error(data.message || 'Request failed (status ' + res.status + ')');
-      return data;
+
+      // Offline fallback using localStorage
+      return await localStorageApi(path, options);
+    }
+
+    // Reset offline flag periodically (e.g., when server comes back)
+    function resetApiOfflineFlag() {
+      API_OFFLINE = false;
     }
 
     // === Login ===
@@ -1414,13 +1970,19 @@
       try {
         var data = await api('/api/auth/register', {
           method: 'POST',
-          body: JSON.stringify({ name: name, email: email, password: password })
+          body: JSON.stringify({
+            name: name,
+            email: email,
+            password: password,
+            inviteCode: regInvite ? regInvite.value.trim() : ''
+          })
         });
         showError(registerError, '');
         showError(registerSuccess, data.message);
         regName.value = '';
         regEmail.value = '';
         regPassword.value = '';
+        if (regInvite) regInvite.value = '';
         setTimeout(function() {
           switchTab('login');
           loginEmail.value = email;
@@ -1471,19 +2033,28 @@
           adminUsersList.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">No users registered yet.</div>';
           return;
         }
-        var html = '<table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+        var html = '<table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Nhóm</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+        // Build full role list: default roles + group roles + custom roles
+        var roleOptions = [];
+        var allRoles = getAllRoles();
+        for (var ri = 0; ri < allRoles.length; ri++) {
+          roleOptions.push(allRoles[ri]);
+        }
         for (var i = 0; i < users.length; i++) {
           var u = users[i];
           var statusClass = 'status-' + u.status.toLowerCase();
+          var groupName = u.group || 'General';
           html += '<tr>';
           html += '<td>' + u.name + '</td>';
           html += '<td>' + u.email + '</td>';
           html += '<td><select onchange="handleRoleChange(' + u.id + ',this.value)" style="padding:4px 8px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text);font-size:12px;outline:none">';
-          var roles = ['ADMIN','DIRECTOR','LEADER','IT','IMPLEMENTATION','ACCOUNTING','EMPLOYEE'];
-          for (var r = 0; r < roles.length; r++) {
-            html += '<option value="' + roles[r] + '"' + (u.role === roles[r] ? ' selected' : '') + '>' + roles[r] + '</option>';
+          for (var r = 0; r < roleOptions.length; r++) {
+            var roleVal = roleOptions[r];
+            var roleLabel = isGroupRole(roleVal) ? (getGroupRoleName(roleVal) + ' (' + roleVal + ')') : roleVal;
+            html += '<option value="' + roleVal + '"' + (u.role === roleVal ? ' selected' : '') + '>' + roleLabel + '</option>';
           }
           html += '</select></td>';
+          html += '<td>' + groupName + '</td>';
           html += '<td class="' + statusClass + '">' + u.status + '</td>';
           html += '<td class="admin-actions">';
           if (u.status === 'PENDING') {
@@ -1499,6 +2070,427 @@
         adminUsersList.innerHTML = html;
       } catch (err) {
         adminUsersList.innerHTML = '<div style="text-align:center;padding:20px;color:var(--danger)">Error loading users: ' + err.message + '</div>';
+      }
+    }
+
+    // === Admin: Switch Admin Tabs ===
+    function switchAdminTab(tab) {
+      document.querySelectorAll('.admin-tabs .tab').forEach(function(t) { t.classList.remove('active'); });
+      document.querySelectorAll('.admin-tab-content').forEach(function(c) { c.style.display = 'none'; });
+      var tabEl = document.querySelector('.admin-tabs .tab[data-admintab="' + tab + '"]');
+      if (tabEl) tabEl.classList.add('active');
+      var contentEl = document.getElementById('admin-tab-' + tab);
+      if (contentEl) contentEl.style.display = 'block';
+      if (tab === 'roles') renderAdminRolesList();
+      if (tab === 'docs') { renderAdminDocRoles(); renderAdminDocList(); }
+      if (tab === 'invites') { populateInviteSelects(); renderAdminInvitesList(); }
+      if (tab === 'content') loadSiteContentFromAdmin();
+    }
+
+    // === Admin: Custom Roles Tab ===
+    async function renderAdminRolesList() {
+      var container = document.getElementById('admin-roles-list');
+      if (!container) return;
+      try {
+        var roles = await api('/api/admin/custom-roles');
+        if (!roles || roles.length === 0) {
+          container.innerHTML = '<div style="text-align:center;padding:14px;color:var(--muted);font-size:13px">Chưa có role tùy chỉnh nào.</div>';
+          return;
+        }
+        var html = '<table><thead><tr><th>Role</th><th>Ngày tạo</th><th></th></tr></thead><tbody>';
+        for (var i = 0; i < roles.length; i++) {
+          var r = roles[i];
+          html += '<tr><td style="font-weight:600">' + r.name + '</td><td style="color:var(--muted);font-size:12px">' + (r.createdAt ? new Date(r.createdAt).toLocaleString() : '—') + '</td>';
+          html += '<td style="text-align:right"><button class="btn danger" onclick="deleteCustomRole(\'' + r.name + '\')" style="padding:4px 10px;font-size:12px">Xóa</button></td></tr>';
+        }
+        html += '</tbody></table>';
+        container.innerHTML = html;
+      } catch (e) {
+        container.innerHTML = '<div style="color:var(--danger);font-size:13px">Lỗi tải role: ' + e.message + '</div>';
+      }
+    }
+
+    async function deleteCustomRole(name) {
+      if (!confirm('Xóa role "' + name + '"?')) return;
+      try {
+        await api('/api/admin/custom-roles/' + encodeURIComponent(name), { method: 'DELETE' });
+        document.getElementById('role-error').textContent = '';
+        document.getElementById('role-success').textContent = 'Đã xóa role ' + name + '.';
+        renderAdminRolesList();
+      } catch (e) {
+        document.getElementById('role-error').textContent = e.message;
+      }
+    }
+
+    async function addCustomRole() {
+      var nameInput = document.getElementById('new-role-name');
+      var name = nameInput.value.trim();
+      var errEl = document.getElementById('role-error');
+      var sucEl = document.getElementById('role-success');
+      if (!errEl || !sucEl) return;
+      errEl.textContent = '';
+      sucEl.textContent = '';
+      if (!name) { errEl.textContent = 'Vui lòng nhập tên role.'; return; }
+      try {
+        await api('/api/admin/custom-roles', { method: 'POST', body: JSON.stringify({ name: name }) });
+        nameInput.value = '';
+        sucEl.textContent = 'Đã thêm role ' + name.toUpperCase() + '.';
+        renderAdminRolesList();
+      } catch (e) {
+        errEl.textContent = e.message;
+      }
+    }
+
+    // === Admin: Docs Tab ===
+    function renderAdminDocRoles() {
+      var container = document.getElementById('admin-doc-roles-container');
+      if (!container) return;
+      var allRoles = getAllRoles();
+      var html = '';
+      for (var i = 0; i < allRoles.length; i++) {
+        var role = allRoles[i];
+        var label = isGroupRole(role) ? getGroupRoleName(role) + ' (' + role + ')' : role;
+        var checked = (role === 'ADMIN' || role === 'DIRECTOR' || role === 'IT' || role === 'ACCOUNTING') ? ' checked' : '';
+        html += '<label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text);cursor:pointer"><input type="checkbox" class="admin-doc-role-cb" value="' + role + '"' + checked + '> ' + label + '</label>';
+      }
+      container.innerHTML = html;
+    }
+
+    function getAdminDocRoles() {
+      var cbs = document.querySelectorAll('.admin-doc-role-cb');
+      var roles = [];
+      for (var i = 0; i < cbs.length; i++) {
+        if (cbs[i].checked) roles.push(cbs[i].value);
+      }
+      return roles;
+    }
+
+    function renderAdminDocList() {
+      var container = document.getElementById('admin-doc-list');
+      if (!container) return;
+      var items = getDocItems();
+      if (items.length === 0) {
+        container.innerHTML = '<div style="text-align:center;padding:14px;color:var(--muted);font-size:13px">Chưa có mục nào.</div>';
+        return;
+      }
+      var html = '';
+      for (var i = 0; i < items.length; i++) {
+        var it = items[i];
+        var rolesStr = (it.visibleRoles && it.visibleRoles.length > 0) ? it.visibleRoles.join(', ') : 'Tất cả';
+        html += '<div class="doc-item-row"><div class="item-info">' +
+                '<div class="item-name">' + it.name + '</div>' +
+                '<div class="item-group">' + (it.category || 'Group') + ' | Vai trò: ' + rolesStr + '</div>' +
+                '<div class="item-link">' + it.link + '</div></div>' +
+                '<div class="item-actions">' +
+                '<button class="edit-btn" onclick="editAdminDocItem(\'' + it.id + '\')">&#9998;</button>' +
+                '<button class="del-btn" onclick="deleteAdminDocItem(\'' + it.id + '\')">&#10005;</button>' +
+                '</div></div>';
+      }
+      container.innerHTML = html;
+    }
+
+    function editAdminDocItem(id) {
+      var items = getDocItems();
+      var item = null;
+      for (var i = 0; i < items.length; i++) { if (items[i].id === id) { item = items[i]; break; } }
+      if (!item) return;
+      document.getElementById('admin-doc-name').value = item.name;
+      document.getElementById('admin-doc-link').value = item.link;
+      document.getElementById('admin-doc-category').value = item.category || 'Group';
+      var cbs = document.querySelectorAll('.admin-doc-role-cb');
+      var selected = item.visibleRoles || [];
+      for (var j = 0; j < cbs.length; j++) {
+        cbs[j].checked = selected.indexOf(cbs[j].value) !== -1;
+      }
+      var msg = document.getElementById('admin-doc-msg');
+      msg.textContent = 'Đang sửa: ' + item.name + '. Nhấn "Cập nhật" để lưu.';
+      msg.style.color = 'var(--accent)';
+      var addBtn = document.getElementById('admin-doc-add-btn');
+      addBtn.innerHTML = '&#10003; Cập nhật';
+      addBtn.onclick = function() { updateAdminDocItem(id); };
+    }
+
+    function updateAdminDocItem(id) {
+      var name = document.getElementById('admin-doc-name').value.trim();
+      var link = document.getElementById('admin-doc-link').value.trim();
+      var category = document.getElementById('admin-doc-category').value;
+      var roles = getAdminDocRoles();
+      var msg = document.getElementById('admin-doc-msg');
+      if (!name || !link) { msg.textContent = 'Vui lòng nhập tên và link.'; msg.style.color = 'var(--danger)'; return; }
+      if (roles.length === 0) { msg.textContent = 'Chọn ít nhất một vai trò.'; msg.style.color = 'var(--danger)'; return; }
+      var items = getDocItems();
+      for (var i = 0; i < items.length; i++) {
+        if (items[i].id === id) {
+          items[i].name = name; items[i].link = link; items[i].category = category; items[i].visibleRoles = roles;
+          break;
+        }
+      }
+      saveDocItems(items);
+      resetAdminDocForm();
+      msg.textContent = 'Đã cập nhật!'; msg.style.color = 'var(--accent2)';
+      renderAdminDocList();
+      buildDropdownMenu();
+    }
+
+    function deleteAdminDocItem(id) {
+      if (!confirm('Xóa mục tài liệu này?')) return;
+      var items = getDocItems();
+      items = items.filter(function(it) { return it.id !== id; });
+      saveDocItems(items);
+      renderAdminDocList();
+      buildDropdownMenu();
+    }
+
+    function resetAdminDocForm() {
+      document.getElementById('admin-doc-name').value = '';
+      document.getElementById('admin-doc-link').value = '';
+      document.getElementById('admin-doc-category').value = 'Group';
+      var cbs = document.querySelectorAll('.admin-doc-role-cb');
+      for (var i = 0; i < cbs.length; i++) {
+        var v = cbs[i].value;
+        cbs[i].checked = (v === 'ADMIN' || v === 'DIRECTOR' || v === 'IT' || v === 'ACCOUNTING');
+      }
+      var msg = document.getElementById('admin-doc-msg');
+      msg.textContent = '';
+      var addBtn = document.getElementById('admin-doc-add-btn');
+      addBtn.innerHTML = '+ Thêm mục';
+      addBtn.onclick = addAdminDocItem;
+    }
+
+    function addAdminDocItem() {
+      var name = document.getElementById('admin-doc-name').value.trim();
+      var link = document.getElementById('admin-doc-link').value.trim();
+      var category = document.getElementById('admin-doc-category').value;
+      var roles = getAdminDocRoles();
+      var msg = document.getElementById('admin-doc-msg');
+      if (!name || !link) { msg.textContent = 'Vui lòng nhập tên và link.'; msg.style.color = 'var(--danger)'; return; }
+      if (roles.length === 0) { msg.textContent = 'Chọn ít nhất một vai trò.'; msg.style.color = 'var(--danger)'; return; }
+      var items = getDocItems();
+      items.push({ id: 'd' + Date.now(), name: name, link: link, category: category, visibleRoles: roles });
+      saveDocItems(items);
+      resetAdminDocForm();
+      msg.textContent = 'Đã thêm mục thành công!'; msg.style.color = 'var(--accent2)';
+      renderAdminDocList();
+      buildDropdownMenu();
+    }
+
+    // === Admin: Invites Tab ===
+    function populateInviteSelects() {
+      var roleSel = document.getElementById('invite-role');
+      if (!roleSel) return;
+      var allRoles = getAllRoles();
+      var html = '';
+      for (var i = 0; i < allRoles.length; i++) {
+        var role = allRoles[i];
+        var label = isGroupRole(role) ? getGroupRoleName(role) + ' (' + role + ')' : role;
+        html += '<option value="' + role + '">' + label + '</option>';
+      }
+      roleSel.innerHTML = html;
+    }
+
+    async function renderAdminInvitesList() {
+      var container = document.getElementById('admin-invites-list');
+      if (!container) return;
+      try {
+        var invites = await api('/api/admin/invites');
+        if (!invites || invites.length === 0) {
+          container.innerHTML = '<div style="text-align:center;padding:14px;color:var(--muted);font-size:13px">Chưa có mã mời nào.</div>';
+          return;
+        }
+        var html = '<table><thead><tr><th>Code</th><th>Email</th><th>Role</th><th>Nhóm</th><th>Trạng thái</th><th></th></tr></thead><tbody>';
+        for (var i = 0; i < invites.length; i++) {
+          var inv = invites[i];
+          var used = !!inv.usedBy;
+          var status = used ? 'Đã dùng' : 'Còn hiệu lực';
+          var statusColor = used ? 'var(--muted)' : 'var(--accent2)';
+          html += '<tr><td style="font-weight:600">' + inv.code + '</td>';
+          html += '<td>' + (inv.email || '—') + '</td>';
+          html += '<td>' + inv.role + '</td>';
+          html += '<td>' + inv.group + '</td>';
+          html += '<td style="color:' + statusColor + '">' + status + '</td>';
+          html += '<td style="text-align:right"><button class="btn danger" onclick="deleteInvite(' + inv.id + ')" style="padding:4px 10px;font-size:12px">Xóa</button></td></tr>';
+        }
+        html += '</tbody></table>';
+        container.innerHTML = html;
+      } catch (e) {
+        container.innerHTML = '<div style="color:var(--danger);font-size:13px">Lỗi: ' + e.message + '</div>';
+      }
+    }
+
+    async function deleteInvite(id) {
+      if (!confirm('Xóa mã mời này?')) return;
+      try {
+        await api('/api/admin/invites/' + id, { method: 'DELETE' });
+        document.getElementById('invite-error').textContent = '';
+        renderAdminInvitesList();
+      } catch (e) {
+        document.getElementById('invite-error').textContent = e.message;
+      }
+    }
+
+    async function createInviteLink() {
+      var email = document.getElementById('invite-email').value.trim();
+      var role = document.getElementById('invite-role').value;
+      var group = document.getElementById('invite-group').value;
+      var errEl = document.getElementById('invite-error');
+      var resultEl = document.getElementById('invite-result');
+      if (!errEl || !resultEl) return;
+      errEl.textContent = '';
+      try {
+        var invite = await api('/api/admin/invites', {
+          method: 'POST',
+          body: JSON.stringify({ email: email || null, role: role, group: group })
+        });
+        var link = window.location.origin + window.location.pathname + '#invite=' + invite.code;
+        resultEl.innerHTML = '<div style="padding:12px;border:1px solid var(--border);border-radius:12px;background:rgba(124,240,193,.06);font-size:13px">' +
+          '<div style="font-weight:600;color:var(--accent2);margin-bottom:6px">Mã mời đã tạo:</div>' +
+          '<div style="font-weight:700;margin-bottom:6px">' + invite.code + '</div>' +
+          '<div style="font-size:11px;color:var(--muted);margin-bottom:6px">Người dùng nhập mã này tại ô "Mã mời" khi đăng ký.</div>' +
+          '<div style="font-size:12px;word-break:break-all;color:var(--accent);margin-bottom:8px">' + link + '</div>' +
+          '<button class="btn" onclick="copyInviteLink(\'' + link + '\')" style="padding:6px 14px;font-size:12px">Sao chép link</button>' +
+          '</div>';
+        document.getElementById('invite-email').value = '';
+        renderAdminInvitesList();
+      } catch (e) {
+        errEl.textContent = e.message;
+      }
+    }
+
+    function copyInviteLink(link) {
+      var ta = document.createElement('textarea');
+      ta.value = link;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch(e) {}
+      document.body.removeChild(ta);
+      var resultEl = document.getElementById('invite-result');
+      if (resultEl) {
+        var notice = document.createElement('div');
+        notice.style.cssText = 'color:var(--accent2);font-size:12px;margin-top:4px';
+        notice.textContent = 'Đã sao chép link!';
+        resultEl.appendChild(notice);
+      }
+    }
+
+    // === Reports Page ===
+    (function() {
+      var div = document.createElement('div');
+      div.innerHTML = `
+      <div class="doc-manager-overlay" id="report-form-overlay">
+        <div class="doc-manager-modal">
+          <button class="close-btn" onclick="closeReportForm()">&times;</button>
+          <h3>&#128202; Thêm Báo Cáo Tài Khoản</h3>
+          <div class="doc-manager-form">
+            <div>
+              <label>Account ID</label>
+              <input id="report-form-accountid" type="text" placeholder="VD: ACC-001" />
+            </div>
+            <div>
+              <label>Tên tài khoản</label>
+              <input id="report-form-accountname" type="text" placeholder="VD: Tài khoản A" />
+            </div>
+            <div>
+              <label>Số DIE</label>
+              <input id="report-form-diecount" type="number" min="0" placeholder="0" />
+            </div>
+            <div>
+              <label>Nhóm</label>
+              <select id="report-form-group">
+                <option value="General">General</option>
+                <option value="GROUP1">Thực thi nhóm 1 (GROUP1)</option>
+                <option value="GROUP2">Thực thi nhóm 2 (GROUP2)</option>
+                <option value="GROUP3">Thực thi nhóm 3 (GROUP3)</option>
+                <option value="FUND1">Quỹ chứng 1 (FUND1)</option>
+              </select>
+            </div>
+            <div class="form-actions">
+              <span class="form-msg" id="report-form-msg"></span>
+              <button class="btn primary" onclick="saveReport()">&#10003; Lưu</button>
+              <button class="btn" onclick="closeReportForm()" style="padding:8px 20px">Đóng</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+      document.body.appendChild(div.firstElementChild);
+    })();
+
+    function closeReportForm() {
+      var overlay = document.getElementById('report-form-overlay');
+      if (overlay) overlay.classList.remove('active');
+    }
+
+    function openReportForm() {
+      var overlay = document.getElementById('report-form-overlay');
+      if (overlay) {
+        overlay.classList.add('active');
+        document.getElementById('report-form-accountid').value = '';
+        document.getElementById('report-form-accountname').value = '';
+        document.getElementById('report-form-diecount').value = '';
+        document.getElementById('report-form-group').value = 'General';
+        var msg = document.getElementById('report-form-msg');
+        msg.textContent = '';
+        msg.style.color = '';
+      }
+    }
+
+    async function saveReport() {
+      var accountId = document.getElementById('report-form-accountid').value.trim();
+      var accountName = document.getElementById('report-form-accountname').value.trim();
+      var dieCount = parseInt(document.getElementById('report-form-diecount').value) || 0;
+      var group = document.getElementById('report-form-group').value;
+      var msg = document.getElementById('report-form-msg');
+      if (!accountId || !accountName) {
+        msg.textContent = 'Vui lòng nhập Account ID và tên tài khoản.';
+        msg.style.color = 'var(--danger)';
+        return;
+      }
+      try {
+        await api('/api/reports', {
+          method: 'POST',
+          body: JSON.stringify({ accountId: accountId, accountName: accountName, dieCount: dieCount, group: group, category: 'Group' })
+        });
+        closeReportForm();
+        loadReports();
+      } catch (e) {
+        msg.textContent = 'Lỗi: ' + e.message;
+        msg.style.color = 'var(--danger)';
+      }
+    }
+
+    async function loadReports() {
+      var container = document.getElementById('reports-list');
+      if (!container) return;
+      try {
+        var reports = await api('/api/reports');
+        var user = getUser();
+        var isAdmin = user && user.role === 'ADMIN';
+        var addBtn = document.getElementById('report-add-btn');
+        if (addBtn) addBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+        var summary = document.getElementById('reports-summary');
+        if (summary) summary.textContent = 'Tổng số báo cáo: ' + reports.length;
+        if (!reports || reports.length === 0) {
+          container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted)">Chưa có báo cáo nào.</div>';
+          return;
+        }
+        var html = '<table><thead><tr><th>Account ID</th><th>Tên tài khoản</th><th>Số DIE</th><th>Nhóm</th><th>Người tạo</th><th>Thời gian</th></tr></thead><tbody>';
+        for (var i = 0; i < reports.length; i++) {
+          var r = reports[i];
+          var creatorName = r.createdBy ? r.createdBy.name : '—';
+          html += '<tr>';
+          html += '<td>' + r.accountId + '</td>';
+          html += '<td>' + r.accountName + '</td>';
+          html += '<td style="font-weight:700;color:var(--accent2)">' + r.dieCount + '</td>';
+          html += '<td>' + r.group + '</td>';
+          html += '<td>' + creatorName + '</td>';
+          html += '<td style="color:var(--muted);font-size:12px">' + new Date(r.createdAt).toLocaleString() + '</td>';
+          html += '</tr>';
+        }
+        html += '</tbody></table>';
+        container.innerHTML = html;
+      } catch (e) {
+        container.innerHTML = '<div style="color:var(--danger);text-align:center;padding:20px">Lỗi: ' + e.message + '</div>';
       }
     }
 
@@ -2003,6 +2995,98 @@
       localStorage.setItem(LOCAL_TEAM_KEY, JSON.stringify(members));
     }
 
+    // === SITE CONTENT (editable website copy) ===
+    var LOCAL_CONTENT_KEY = '_pvt_site_content';
+    var LOCAL_GROUP_CHAT_KEY = '_pvt_group_chats';
+
+    function getDefaultSiteContent() {
+      return {
+        hero: {
+          title: 'Trusted solutions for your next milestone.',
+          lead: 'A private corporate site with secure navigation, clean layout, and quick content sections.',
+          feature1Title: 'Secure by design',
+          feature1Desc: 'Server-side authentication with role-based access control.',
+          feature2Title: 'Modern UI',
+          feature2Desc: 'Responsive layout, accessible components, and a polished dark theme.',
+          feature3Title: 'Easy to customize',
+          feature3Desc: 'Update copy, images, and links without touching the structure.'
+        },
+        quickFacts: {
+          industry: '[Your industry]',
+          hq: '[City, Country]',
+          note: 'Internal documents and announcements can be linked here.'
+        },
+        announcements: [
+          { title: 'New policy update', text: '[Date] — Replace with your latest update.' },
+          { title: 'Office hours', text: '[Details] — Replace with current schedule.' }
+        ],
+        about: {
+          mission: 'To deliver innovative solutions that empower businesses to achieve their full potential. We believe in building lasting partnerships through trust, transparency, and exceptional service.',
+          values: [
+            'Integrity — We do the right thing, always',
+            'Excellence — We pursue the highest standards',
+            'Innovation — We embrace change and new ideas',
+            'Collaboration — We succeed together',
+            'Customer-first — Our clients are our priority'
+          ],
+          overview: 'Founded with a vision to transform the [your industry] landscape, we have grown into a trusted partner for organizations worldwide. Our team brings decades of combined experience across strategy, technology, and operations.'
+        },
+        services: [
+          { title: '📈 Consulting', desc: 'Strategic planning, market analysis, and business transformation guidance. We help you identify opportunities, mitigate risks, and chart a clear path forward with data-driven recommendations.' },
+          { title: '⚙ Implementation', desc: 'End-to-end deployment of solutions, system integration, and operational setup. Our team works alongside yours to ensure seamless rollout with measurable outcomes and minimal disruption.' },
+          { title: '🔧 Support', desc: 'Ongoing maintenance, troubleshooting, and continuous improvement. We provide reliable support to keep your systems running smoothly with guaranteed response times.' },
+          { title: '☁ Managed Services', desc: 'Full-service management of your critical operations. Reduce your team\'s workload with predictable delivery, proactive monitoring, and dedicated account management.' },
+          { title: '📊 Reporting & Analytics', desc: 'Custom dashboards, performance summaries, and actionable insights for stakeholders. Make informed decisions with real-time data visualization and trend analysis.' },
+          { title: '🎓 Training', desc: 'Workshops, documentation, and knowledge transfer for smooth adoption. Empower your team with the skills they need to succeed through structured learning programs.' }
+        ],
+        contact: {
+          email: 'contact@redsv.vn',
+          office: '123 Business Avenue, Suite 100\n[City, Country]',
+          responseTime: 'Typically within 24 hours'
+        },
+        footer: 'Company Name. Private site template.'
+      };
+    }
+
+    function getSiteContent() {
+      var stored = localStorage.getItem(LOCAL_CONTENT_KEY);
+      if (stored) {
+        try { return JSON.parse(stored); } catch(e) {}
+      }
+      var defaults = getDefaultSiteContent();
+      localStorage.setItem(LOCAL_CONTENT_KEY, JSON.stringify(defaults));
+      return defaults;
+    }
+
+    function saveSiteContent(content) {
+      localStorage.setItem(LOCAL_CONTENT_KEY, JSON.stringify(content));
+    }
+
+    function getLocalGroupChats() {
+      var stored = localStorage.getItem(LOCAL_GROUP_CHAT_KEY);
+      if (stored) {
+        try { return JSON.parse(stored); } catch(e) {}
+      }
+      var defaults = [];
+      localStorage.setItem(LOCAL_GROUP_CHAT_KEY, JSON.stringify(defaults));
+      return defaults;
+    }
+
+    function saveLocalGroupChats(groups) {
+      localStorage.setItem(LOCAL_GROUP_CHAT_KEY, JSON.stringify(groups));
+    }
+
+    // === Member Detail Modal: showMemberModal ===
+    function showMemberModal(name, position, roleClass, description, role, avatar) {
+      var overlay = document.getElementById('member-modal');
+      if (!overlay) return;
+      document.getElementById('modal-avatar').innerHTML = avatar || '&#128100;';
+      document.getElementById('modal-name').textContent = name || '';
+      document.getElementById('modal-role').textContent = position || '';
+      document.getElementById('modal-desc').textContent = description || '';
+      overlay.classList.add('active');
+    }
+
     // === Team Members UI Functions ===
     async function loadTeamMembers() {
       var container = document.getElementById('team-members-container');
@@ -2035,7 +3119,7 @@
         var pos = m.position || '';
         var desc = m.description || '';
         var avatar = m.avatarIcon || '&#128100;';
-        html += '<div class="member-card" onclick="showMemberModal(\'' + m.name.replace(/'/g, "\\'") + '\',\'' + pos.replace(/'/g, "\\'") + '\',\'' + roleClass + '\',\'' + desc.replace(/'/g, "\\'") + '\',\'' + (m.role || '') + '\')">';
+        html += '<div class="member-card" onclick="showMemberModal(\'' + m.name.replace(/'/g, "\\'") + '\',\'' + pos.replace(/'/g, "\\'") + '\',\'' + roleClass + '\',\'' + desc.replace(/'/g, "\\'") + '\',\'' + (m.role || '') + '\',\'' + avatar + '\')">';
         html += '<div class="expand-icon">&#9432;</div>';
         html += '<div class="avatar">' + avatar + '</div>';
         html += '<h3 style="margin:0;font-size:15px">' + m.name + '</h3>';
@@ -2320,8 +3404,9 @@
     // === Document Repository Data (with 3 Categories: Group, Fund, VPS + Role-Based Access) ===
     var DOC_GROUPS_KEY = "private_doc_groups";
 
-    // Full-access roles: ADMIN, DIRECTOR, IT, ACCOUNTING — can see ALL items
-    var FULL_ACCESS_ROLES = ["ADMIN", "DIRECTOR", "IT", "ACCOUNTING"];
+    // Full-access roles: ADMIN, DIRECTOR, IT, ACCOUNTING, LEADER — can see ALL items
+    // NOTE: do NOT redeclare here (already declared at top with LEADER). Remove duplicate.
+    // Group roles (GROUP1/2/3, FUND1) only see their own group docs + VPS + Profile items they are granted.
 
     function getDefaultDocItems() {
       return [
@@ -2435,6 +3520,16 @@
       var items = getDocItems();
       items = items.filter(function(it) { return it.id !== id; });
       saveDocItems(items);
+      buildDropdownMenu();
+    }
+
+    // Delete a document item from the manager modal
+    function deleteDocItemFromManager(id) {
+      if (!confirm('Xóa mục tài liệu này?')) return;
+      var items = getDocItems();
+      items = items.filter(function(it) { return it.id !== id; });
+      saveDocItems(items);
+      renderDocManagerList();
       buildDropdownMenu();
     }
 
@@ -2892,12 +3987,15 @@
       }
     };
 
-    // Override showPage to load team members when team page is shown
+    // Override showPage to load team members / reports when their page is shown
     var origShowPage = showPage;
     showPage = function(pageId) {
       origShowPage(pageId);
       if (pageId === 'team') {
         loadTeamMembers();
+      }
+      if (pageId === 'reports') {
+        loadReports();
       }
     };
 
