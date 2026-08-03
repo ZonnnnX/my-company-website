@@ -283,12 +283,37 @@
       padding:20px; backdrop-filter:blur(4px);
     }
     .doc-manager-overlay.active{display:flex}
-    .doc-manager-modal{
+.doc-manager-modal{
       background:var(--card); border:1px solid var(--border);
       border-radius:18px; padding:24px;
       max-width:560px; width:100%; max-height:80vh;
       box-shadow:0 30px 80px rgba(0,0,0,.5);
       overflow-y:auto; animation:modalIn .25s ease;
+      scrollbar-width:thin; scrollbar-color:rgba(106,167,255,.5) transparent;
+    }
+    /* --- Modern custom scrollbar for modal containers --- */
+    .doc-manager-modal::-webkit-scrollbar,
+    .doc-manager-overlay::-webkit-scrollbar,
+    .admin-content-editor-scroll::-webkit-scrollbar{
+      width:8px;
+    }
+    .doc-manager-modal::-webkit-scrollbar-track,
+    .doc-manager-overlay::-webkit-scrollbar-track,
+    .admin-content-editor-scroll::-webkit-scrollbar-track{
+      background:rgba(255,255,255,.04);
+      border-radius:8px;
+    }
+    .doc-manager-modal::-webkit-scrollbar-thumb,
+    .doc-manager-overlay::-webkit-scrollbar-thumb,
+    .admin-content-editor-scroll::-webkit-scrollbar-thumb{
+      background:linear-gradient(180deg, rgba(106,167,255,.6), rgba(124,240,193,.55));
+      border-radius:8px;
+      border:2px solid rgba(18,26,45,.6);
+    }
+    .doc-manager-modal::-webkit-scrollbar-thumb:hover,
+    .doc-manager-overlay::-webkit-scrollbar-thumb:hover,
+    .admin-content-editor-scroll::-webkit-scrollbar-thumb:hover{
+      background:linear-gradient(180deg, rgba(106,167,255,.85), rgba(124,240,193,.8));
     }
     .doc-manager-modal h3{margin:0 0 16px; font-size:18px; display:flex; align-items:center; gap:10px}
     .doc-manager-modal .close-btn{
@@ -441,16 +466,42 @@
       padding:20px;
       background: rgba(0,0,0,.55);
     }
-    .gate-card{
-      width:min(520px, 100%);
+.gate-card{
+      width:min(560px, 100%);
       background: rgba(18,26,45,.92);
       border:1px solid var(--border);
       border-radius:18px;
       padding:18px;
       box-shadow: 0 30px 100px rgba(0,0,0,.45);
+      max-height:88vh;
+      overflow-y:auto;
+      scrollbar-width:thin; scrollbar-color:rgba(106,167,255,.5) transparent;
     }
-    .gate-card h2{margin:0 0 8px; font-size:18px}
+    /* --- Modern custom scrollbar for the gate / admin panel --- */
+    .gate-card::-webkit-scrollbar{
+      width:8px;
+    }
+    .gate-card::-webkit-scrollbar-track{
+      background:rgba(255,255,255,.04);
+      border-radius:8px;
+    }
+    .gate-card::-webkit-scrollbar-thumb{
+      background:linear-gradient(180deg, rgba(106,167,255,.6), rgba(124,240,193,.55));
+      border-radius:8px;
+      border:2px solid rgba(18,26,45,.6);
+    }
+    .gate-card::-webkit-scrollbar-thumb:hover{
+      background:linear-gradient(180deg, rgba(106,167,255,.85), rgba(124,240,193,.8));
+    }
+.gate-card h2{margin:0 0 8px; font-size:18px}
     .gate-card p{margin:0 0 14px; color:var(--muted); font-size:13.5px}
+    .gate-close{
+      position:absolute; top:12px; right:12px;
+      background:none; border:none; color:var(--muted);
+      font-size:24px; cursor:pointer; padding:4px 8px;
+      border-radius:8px; line-height:1;
+    }
+    .gate-close:hover{background:rgba(255,255,255,.06);color:var(--text)}
     .row{display:flex; gap:10px; flex-wrap:wrap}
     input[type="text"], input[type="email"], input[type="password"]{
       flex:1; min-width:220px;
@@ -626,8 +677,9 @@
   <div class="toast-container" id="toast-container"></div>
 
   <!-- Auth Gate -->
-  <div id="gate" class="gate" role="dialog" aria-modal="true" aria-labelledby="gate-title">
+<div id="gate" class="gate" role="dialog" aria-modal="true" aria-labelledby="gate-title">
     <div class="gate-card">
+      <button class="gate-close" id="gate-close-btn" onclick="closeAdminPanel()" title="Đóng" aria-label="Đóng">&times;</button>
       <h2 id="gate-title">Private Access</h2>
       <p id="gate-subtitle">Sign in or create an account.</p>
 
@@ -2776,6 +2828,11 @@
     function handleLogout() {
       clearAuth();
       checkAuthState();
+    }
+
+// === Close Admin Panel (X button) ===
+    function closeAdminPanel() {
+      gate.style.display = 'none';
     }
 
     // === Toggle Admin Panel (Nav Button) ===
