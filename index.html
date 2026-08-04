@@ -786,8 +786,9 @@
             <div class="tab active" data-admintab="users" onclick="switchAdminTab('users')">&#128101; Người dùng</div>
             <div class="tab" data-admintab="roles" onclick="switchAdminTab('roles')">&#128273; Quản lý Role</div>
             <div class="tab" data-admintab="docs" onclick="switchAdminTab('docs')">&#128196; Tài liệu</div>
-            <div class="tab" data-admintab="invites" onclick="switchAdminTab('invites')">&#9993; Mời qua Email</div>
+<div class="tab" data-admintab="invites" onclick="switchAdminTab('invites')">&#9993; Mời qua Email</div>
             <div class="tab" data-admintab="content" onclick="switchAdminTab('content')">&#128221; Nội dung</div>
+            <div class="tab" data-admintab="broadcast" onclick="switchAdminTab('broadcast')">&#128227; Thông Báo</div>
           </div>
 
 <!-- Tab: Users -->
@@ -989,9 +990,33 @@
                 <input id="content-footer" type="text" />
               </div>
             </div>
-            <div style="display:flex;align-items:center;gap:10px;margin-top:14px">
+<div style="display:flex;align-items:center;gap:10px;margin-top:14px">
               <button class="btn primary" onclick="saveSiteContentFromAdmin()"><span class="dot"></span> Lưu nội dung</button>
               <span class="form-msg" id="admin-content-msg" style="color:var(--accent2);font-size:12.5px"></span>
+            </div>
+          </div>
+
+          <!-- Tab: Broadcast -->
+          <div class="admin-tab-content" id="admin-tab-broadcast" style="display:none">
+            <p style="color:var(--muted); font-size:13.5px; margin-bottom:16px">Gửi thông báo chung tới tất cả người dùng hoặc theo vai trò (role).</p>
+            <div class="card" style="margin-bottom:12px">
+              <h4 style="margin:0 0 10px;font-size:14px">&#128227; Thông Báo Chung</h4>
+              <div class="full-row" style="margin-bottom:8px">
+                <label style="font-size:12px;color:var(--muted)">Tiêu đề</label>
+                <input id="broadcast-title" type="text" placeholder="VD: Bảo trì hệ thống" />
+              </div>
+              <div class="full-row" style="margin-bottom:8px">
+                <label style="font-size:12px;color:var(--muted)">Nội dung</label>
+                <textarea id="broadcast-message" rows="4" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text);outline:none;resize:vertical;font-family:inherit;font-size:13px" placeholder="Nhập nội dung thông báo..."></textarea>
+              </div>
+              <div class="full-row" style="margin-bottom:8px">
+                <label style="font-size:12px;color:var(--muted)">Gửi tới vai trò (để trống = tất cả)</label>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px" id="broadcast-roles-container"></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;margin-top:12px">
+                <button class="btn primary" onclick="sendBroadcast()"><span class="dot"></span> Gửi Thông Báo</button>
+                <span class="form-msg" id="broadcast-msg" style="color:var(--accent2);font-size:12.5px"></span>
+              </div>
             </div>
           </div>
 
@@ -2788,9 +2813,12 @@ html += '<td><select class="admin-select" onchange="handleRoleChange(' + u.id + 
         return;
       }
 
-      // User is logged in
+// User is logged in
       gate.style.display = 'none';
       content.style.display = 'block';
+
+      // Apply saved site content to the UI
+      applySiteContentToUI();
 
       // Update lock button
       logoutBtn.style.display = 'inline-block';
@@ -3309,8 +3337,312 @@ html += '<td><select class="admin-select" onchange="handleRoleChange(' + u.id + 
       return defaults;
     }
 
-    function saveSiteContent(content) {
+function saveSiteContent(content) {
       localStorage.setItem(LOCAL_CONTENT_KEY, JSON.stringify(content));
+    }
+
+    // === Toast Notifications (Facebook-style) ===
+    function showToast(type, title, msg, duration) {
+      var container = document.getElementById('toast-container');
+      if (!container) return;
+      var icons = { success: '&#10003;', error: '&#10007;', warning: '&#9888;', message: '&#128172;', group: '&#128101;' };
+      var icon = icons[type] || '&#8505;';
+      var toast = document.createElement('div');
+      toast.className = 'toast ' + (type || 'message');
+      toast.innerHTML = '<div class="toast-icon">' + icon + '</div>' +
+        '<div class="toast-body">' +
+          '<div class="toast-title">' + (title || '') + '</div>' +
+          '<div class="toast-msg">' + (msg || '') + '</div>' +
+        '</div>' +
+        '<button class="toast-close" onclick="this.parentNode.classList.add(\'out\');setTimeout(function(){this.parentNode.remove()}.bind(this),300)">&times;</button>';
+      container.appendChild(toast);
+      var t = duration || 4000;
+      setTimeout(function() {
+        toast.classList.add('out');
+        setTimeout(function() { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 300);
+      }, t);
+    }
+
+    // === Apply saved site content to the actual UI ===
+    function applySiteContentToUI(content) {
+      if (!content) content = getSiteContent();
+      // Hero
+      var el = document.getElementById('home-hero-title');
+      if (el && content.hero && content.hero.title) el.textContent = content.hero.title;
+      el = document.getElementById('home-hero-lead');
+      if (el && content.hero && content.hero.lead) el.textContent = content.hero.lead;
+      var feats = [
+        { t: 'home-feature1-title', d: 'home-feature1-desc', tt: 'feature1Title', dd: 'feature1Desc' },
+        { t: 'home-feature2-title', d: 'home-feature2-desc', tt: 'feature2Title', dd: 'feature2Desc' },
+        { t: 'home-feature3-title', d: 'home-feature3-desc', tt: 'feature3Title', dd: 'feature3Desc' }
+      ];
+      for (var fi = 0; fi < feats.length; fi++) {
+        var fe = feats[fi];
+        var te = document.getElementById(fe.t);
+        if (te && content.hero && content.hero[fe.tt]) te.textContent = content.hero[fe.tt];
+        var de = document.getElementById(fe.d);
+        if (de && content.hero && content.hero[fe.dd]) de.textContent = content.hero[fe.dd];
+      }
+      // Quick facts
+      var qf = content.quickFacts;
+      if (qf) {
+        el = document.getElementById('home-qf-industry');
+        if (el && qf.industry) el.textContent = qf.industry;
+        el = document.getElementById('home-qf-hq');
+        if (el && qf.hq) el.textContent = qf.hq;
+        el = document.getElementById('home-qf-note');
+        if (el && qf.note) el.textContent = qf.note;
+      }
+      // Announcements
+      var annContainer = document.getElementById('home-announcements');
+      if (annContainer && content.announcements && content.announcements.length > 0) {
+        var annHtml = '';
+        for (var ai = 0; ai < content.announcements.length; ai++) {
+          var a = content.announcements[ai];
+          if (ai > 0) annHtml += '<div style="border-top:1px solid var(--border); margin:12px 0"></div>';
+          annHtml += '<div style="font-weight:700">&bull; ' + a.title + '</div>';
+          annHtml += '<div style="color:var(--muted); font-size:13.5px; margin-top:6px">' + a.text + '</div>';
+        }
+        annContainer.innerHTML = annHtml;
+      }
+      // About
+      if (content.about) {
+        var missionEl = document.querySelector('#page-about .card p');
+        if (missionEl && content.about.mission) missionEl.textContent = content.about.mission;
+        var valuesUl = document.querySelectorAll('#page-about .two-col .list');
+        if (valuesUl[0] && content.about.values) {
+          var vh = '';
+          for (var vi = 0; vi < content.about.values.length; vi++) {
+            vh += '<li>' + content.about.values[vi] + '</li>';
+          }
+          valuesUl[0].innerHTML = vh;
+        }
+        if (valuesUl[1] && content.about.overview) {
+          var op = valuesUl[1].querySelector('p');
+          if (op) op.textContent = content.about.overview;
+        }
+      }
+      // Services
+      var svcContainer = document.getElementById('page-services');
+      if (svcContainer && content.services && content.services.length > 0) {
+        var grid = svcContainer.querySelector('.grid');
+        if (grid) {
+          var sh = '';
+          for (var si = 0; si < content.services.length; si++) {
+            var s = content.services[si];
+            sh += '<div class="feature"><h3>' + s.title + '</h3><p>' + s.desc + '</p></div>';
+          }
+          grid.innerHTML = sh;
+        }
+      }
+      // Contact
+      if (content.contact) {
+        var mailEl = document.querySelector('#page-contact .btn.primary[href^="mailto:"]');
+        if (mailEl && content.contact.email) {
+          mailEl.href = 'mailto:' + content.contact.email;
+          mailEl.textContent = content.contact.email;
+        }
+        var officeEl = document.querySelector('#page-contact .card:nth-child(2) .card div:nth-child(2)');
+        if (officeEl && content.contact.office) officeEl.textContent = content.contact.office;
+        var respEl = document.querySelector('#page-contact .card:nth-child(2) .accent2');
+        if (respEl && content.contact.responseTime) respEl.textContent = content.contact.responseTime;
+      }
+      // Footer
+      if (content.footer) {
+        var footerEl = document.querySelector('footer');
+        if (footerEl) footerEl.innerHTML = '&copy; <span id="year"></span> ' + content.footer + ' <span style="color:var(--muted);font-size:12px">| <a href="#home" style="color:var(--accent)">Home</a> | <a href="#about" style="color:var(--accent)">About</a> | <a href="#services" style="color:var(--accent)">Services</a> | <a href="#team" style="color:var(--accent)">Team</a> | <a href="#contact" style="color:var(--accent)">Contact</a></span>';
+        var yearEl = document.getElementById('year');
+        if (yearEl) yearEl.textContent = new Date().getFullYear();
+      }
+    }
+
+    // === Admin Content tab: load site content into the editor ===
+    function renderContentAnnouncementsList(content) {
+      var container = document.getElementById('content-announcements-list');
+      if (!container) return;
+      var anns = (content && content.announcements) ? content.announcements : [];
+      if (anns.length === 0) {
+        container.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:6px 0">Chưa có thông báo nào.</div>';
+        return;
+      }
+      var html = '';
+      for (var i = 0; i < anns.length; i++) {
+        var a = anns[i];
+        html += '<div class="doc-item-row" style="margin-bottom:6px">' +
+          '<div class="item-info">' +
+          '<div class="item-name">' + a.title + '</div>' +
+          '<div class="item-group">' + a.text + '</div>' +
+          '</div>' +
+          '<div class="item-actions">' +
+          '<button class="del-btn" onclick="deleteContentAnnouncement(' + i + ')">&#10005;</button>' +
+          '</div></div>';
+      }
+      container.innerHTML = html;
+    }
+
+    function renderContentServicesList(content) {
+      var container = document.getElementById('content-services-list');
+      if (!container) return;
+      var svcs = (content && content.services) ? content.services : [];
+      if (svcs.length === 0) {
+        container.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:6px 0">Chưa có dịch vụ nào.</div>';
+        return;
+      }
+      var html = '';
+      for (var i = 0; i < svcs.length; i++) {
+        var s = svcs[i];
+        html += '<div class="doc-item-row" style="margin-bottom:6px">' +
+          '<div class="item-info">' +
+          '<div class="item-name">' + s.title + '</div>' +
+          '<div class="item-group">' + s.desc + '</div>' +
+          '</div>' +
+          '<div class="item-actions">' +
+          '<button class="del-btn" onclick="deleteContentService(' + i + ')">&#10005;</button>' +
+          '</div></div>';
+      }
+      container.innerHTML = html;
+    }
+
+    function loadSiteContentFromAdmin() {
+      var content = getSiteContent();
+      var set = function(id, val) {
+        var el = document.getElementById(id);
+        if (el && val !== undefined && val !== null) el.value = val;
+      };
+      if (content.hero) {
+        set('content-hero-title', content.hero.title);
+        set('content-hero-lead', content.hero.lead);
+        set('content-feature1-title', content.hero.feature1Title);
+        set('content-feature1-desc', content.hero.feature1Desc);
+        set('content-feature2-title', content.hero.feature2Title);
+        set('content-feature2-desc', content.hero.feature2Desc);
+        set('content-feature3-title', content.hero.feature3Title);
+        set('content-feature3-desc', content.hero.feature3Desc);
+      }
+      if (content.quickFacts) {
+        set('content-qf-industry', content.quickFacts.industry);
+        set('content-qf-hq', content.quickFacts.hq);
+        set('content-qf-note', content.quickFacts.note);
+      }
+      var annList = document.getElementById('content-announcements-list');
+      if (annList) renderContentAnnouncementsList(content);
+      if (content.about) {
+        set('content-about-mission', content.about.mission);
+        set('content-about-values', (content.about.values || []).join('\n'));
+        set('content-about-overview', content.about.overview);
+      }
+      var svcList = document.getElementById('content-services-list');
+      if (svcList) renderContentServicesList(content);
+      if (content.contact) {
+        set('content-contact-email', content.contact.email);
+        set('content-contact-response', content.contact.responseTime);
+        set('content-contact-office', content.contact.office);
+      }
+      set('content-footer', content.footer);
+      var msg = document.getElementById('admin-content-msg');
+      if (msg) msg.textContent = '';
+    }
+
+    function addContentAnnouncement() {
+      var title = document.getElementById('content-announcement-new-title');
+      var text = document.getElementById('content-announcement-new-text');
+      if (!title || !text) return;
+      if (!title.value.trim() || !text.value.trim()) {
+        showToast('warning', 'Thiếu thông tin', 'Vui lòng nhập tiêu đề và nội dung thông báo.');
+        return;
+      }
+      var content = getSiteContent();
+      if (!content.announcements) content.announcements = [];
+      content.announcements.push({ title: title.value.trim(), text: text.value.trim() });
+      saveSiteContent(content);
+      title.value = '';
+      text.value = '';
+      renderContentAnnouncementsList(content);
+      showToast('success', 'Đã thêm', 'Đã thêm thông báo. Nhấn "Lưu nội dung" để áp dụng.');
+    }
+
+    function deleteContentAnnouncement(index) {
+      var content = getSiteContent();
+      if (!content.announcements) return;
+      if (!confirm('Xóa thông báo này?')) return;
+      content.announcements.splice(index, 1);
+      saveSiteContent(content);
+      renderContentAnnouncementsList(content);
+      showToast('success', 'Đã xóa', 'Đã xóa thông báo.');
+    }
+
+    function addContentService() {
+      var title = document.getElementById('content-service-new-title');
+      var desc = document.getElementById('content-service-new-desc');
+      if (!title || !desc) return;
+      if (!title.value.trim() || !desc.value.trim()) {
+        showToast('warning', 'Thiếu thông tin', 'Vui lòng nhập tên và mô tả dịch vụ.');
+        return;
+      }
+      var content = getSiteContent();
+      if (!content.services) content.services = [];
+      content.services.push({ title: title.value.trim(), desc: desc.value.trim() });
+      saveSiteContent(content);
+      title.value = '';
+      desc.value = '';
+      renderContentServicesList(content);
+      showToast('success', 'Đã thêm', 'Đã thêm dịch vụ. Nhấn "Lưu nội dung" để áp dụng.');
+    }
+
+    function deleteContentService(index) {
+      var content = getSiteContent();
+      if (!content.services) return;
+      if (!confirm('Xóa dịch vụ này?')) return;
+      content.services.splice(index, 1);
+      saveSiteContent(content);
+      renderContentServicesList(content);
+      showToast('success', 'Đã xóa', 'Đã xóa dịch vụ.');
+    }
+
+    async function saveSiteContentFromAdmin() {
+      var content = getSiteContent();
+      var get = function(id) {
+        var el = document.getElementById(id);
+        return el ? el.value : '';
+      };
+      content.hero = {
+        title: get('content-hero-title'),
+        lead: get('content-hero-lead'),
+        feature1Title: get('content-feature1-title'),
+        feature1Desc: get('content-feature1-desc'),
+        feature2Title: get('content-feature2-title'),
+        feature2Desc: get('content-feature2-desc'),
+        feature3Title: get('content-feature3-title'),
+        feature3Desc: get('content-feature3-desc')
+      };
+      content.quickFacts = {
+        industry: get('content-qf-industry'),
+        hq: get('content-qf-hq'),
+        note: get('content-qf-note')
+      };
+      content.about = {
+        mission: get('content-about-mission'),
+        values: (get('content-about-values') || '').split('\n').map(function(s) { return s.trim(); }).filter(function(s) { return s.length > 0; }),
+        overview: get('content-about-overview')
+      };
+      content.contact = {
+        email: get('content-contact-email'),
+        responseTime: get('content-contact-response'),
+        office: get('content-contact-office')
+      };
+      content.footer = get('content-footer');
+      saveSiteContent(content);
+      var msg = document.getElementById('admin-content-msg');
+      try {
+        await api('/api/site-content', { method: 'PUT', body: JSON.stringify(content) });
+        saveSiteContent(content);
+        if (msg) { msg.textContent = 'Đã lưu nội dung (đã đồng bộ server)!'; msg.style.color = 'var(--accent2)'; }
+        showToast('success', 'Đã lưu', 'Nội dung đã được lưu và áp dụng.');
+      } catch (e) {
+        if (msg) { msg.textContent = 'Đã lưu (offline).'; msg.style.color = 'var(--accent2)'; }
+        showToast('success', 'Đã lưu', 'Nội dung đã được lưu (offline).');
+      }
+      applySiteContentToUI(content);
     }
 
     function getLocalGroupChats() {
@@ -4250,10 +4582,13 @@ html += '<td><select class="admin-select" onchange="handleRoleChange(' + u.id + 
       }
     };
 
-    // === Init ===
+// === Init ===
     document.getElementById('year').textContent = new Date().getFullYear();
     updateNotifUI();
     checkAuthState();
+    // Apply saved site content on page load
+    let siteContent = getSiteContent();
+    applySiteContentToUI(siteContent);
   </script>
 </body>
 </html>

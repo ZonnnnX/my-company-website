@@ -18,4 +18,3 @@
 - [ ] Bước 7: Tạo folder ADMIN-LINKS chứa link web + tài khoản admin
 - [ ] Bước 8: Cập nhật README/PLAN, git commit & push
 - [ ] Bước 9: Chạy web lên để admin check
-
