@@ -1928,12 +1928,93 @@ app.post("/api/notifications/broadcast", authenticateToken, requireAdmin, async 
             await createNotification(u.id, "broadcast", title, message);
         }
 
-        return res.json({ message: `Broadcast sent to ${users.length} users.` });
+return res.json({ message: `Broadcast sent to ${users.length} users.` });
     } catch (error) {
         console.error("Broadcast notification error:", error);
         return res.status(500).json({ message: "Server error." });
     }
 });
+
+// --- Broadcast History API (admin) ---
+// List broadcast history (admin only)
+app.get("/api/admin/broadcasts", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const broadcasts = await prisma.broadcast.findMany({
+            orderBy: { createdAt: "desc" },
+            take: 100
+        });
+        // Parse roles JSON for frontend compatibility
+        const result = broadcasts.map(b => ({
+            ...b,
+            roles: safeParseJson(b.roles, [])
+        }));
+        return res.json(result);
+    } catch (error) {
+        console.error("List broadcasts error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+// Create a broadcast + send notifications to targeted users (admin only)
+app.post("/api/admin/broadcasts", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { title, message, roles } = req.body;
+        if (!title || !message) {
+            return res.status(400).json({ message: "Title and message are required." });
+        }
+
+        // Determine target users
+        const where = roles && roles.length > 0 ? { role: { in: roles } } : {};
+        const users = await prisma.user.findMany({ where, select: { id: true } });
+
+        // Save to broadcast history
+        const broadcast = await prisma.broadcast.create({
+            data: {
+                title: title.trim(),
+                message: message.trim(),
+                roles: JSON.stringify(roles || []),
+                createdById: req.user.id,
+                createdByName: req.user.name
+            }
+        });
+
+        // Create notifications for each target user
+        for (const u of users) {
+            await createNotification(u.id, "broadcast", title, message);
+        }
+
+        return res.status(201).json({
+            ...broadcast,
+            roles: roles || []
+        });
+    } catch (error) {
+        console.error("Create broadcast error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+// Delete a broadcast history entry (admin only)
+app.delete("/api/admin/broadcasts/:id", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (isNaN(id)) return res.status(400).json({ message: "Invalid ID." });
+
+        const existing = await prisma.broadcast.findUnique({ where: { id } });
+        if (!existing) return res.status(404).json({ message: "Broadcast not found." });
+
+        await prisma.broadcast.delete({ where: { id } });
+        return res.json({ message: "Broadcast deleted." });
+    } catch (error) {
+        console.error("Delete broadcast error:", error);
+        return res.status(500).json({ message: "Server error." });
+    }
+});
+
+// Helper: safely parse a JSON string
+function safeParseJson(str, fallback) {
+    if (!str) return fallback;
+    try { return JSON.parse(str); } catch (e) { return fallback; }
+}
 
 // --- Contact API ---
 app.post("/api/contact", async (req, res) => {

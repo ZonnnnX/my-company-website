@@ -1,0 +1,9 @@
+# Backup files
+*.bak
+
+# Runtime logs
+backend/server.log
+backend/server.err.log
+
+# Node
+node_modules/

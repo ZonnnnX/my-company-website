@@ -1,52 +1,55 @@
-# Private Company Website (Static)
+# Private Company Website
 
-A lightweight single-page private website template.
-
-**Important:** This template is **front-end only** access control (client-side). Anyone can view the HTML/JS source unless you also add server-side authentication or restrict access at the hosting layer.
+A lightweight private corporate website with authentication, role-based access control, admin panel, team chat, private messaging, document repository, and reports.
 
 ## How to run
-Just open `index.html` in a browser.
 
-- Windows: double-click `index.html`
-- Or: open it with your preferred browser
+### Option 1 — Backend server (recommended, full features)
+```bash
+cd backend
+npm install
+npm run start        # or: node index.js
+```
+Then open `http://localhost:5000`.
 
-## Private access (demo gate)
-This template includes a **client-side** access-code gate using `sessionStorage`.
+The backend serves static files from the project root (including `index.html` and the `public/` folder) via `express.static`.
 
-### 1) Set the access code
-Edit this line in `index.html`:
+### Option 2 — Directly open the HTML file
+Just open `index.html` in a browser. The app works in offline mode using a `localStorage` fallback backend.
 
-```js
-const ACCESS_CODE = "1234";
+## Project structure (modular)
+The frontend is split into modular components to keep `index.html` small and maintainable:
+
+```
+index.html                  # HTML body markup + references to components
+public/
+  css/style.css             # All styles
+  js/config.js              # Configuration, roles, localStorage helpers
+  js/localStorageApi.js     # Offline fallback API (localStorage)
+  js/core.js                # DOM refs, auth, admin user management
+  js/admin.js               # Admin tabs: roles, docs, invites, content, broadcast, reports
+  js/chat.js                # Team chat, private chat, notifications, group chat
+  js/init.js                # Init code
+backend/
+  index.js                  # Express backend (Prisma + SQLite)
 ```
 
-### 2) Understand how “privacy” works here
-- Passing the code stores a flag in **this browser session** only (session-based).
-- Closing the tab/window (or starting a new session) will require unlocking again.
+## Features
+- **Authentication**: register/login with admin approval workflow
+- **Role-based access**: ADMIN, DIRECTOR, LEADER, IT, ACCOUNTING, IMPLEMENTATION, EMPLOYEE + custom roles
+- **Admin panel**: manage users, roles, documents, invites, site content, broadcasts
+- **Chat**: team chat + private messaging (Messenger-style) + group chats
+- **Document repository**: role-based visibility per document category
+- **Reports**: account DIE reporting
+- **Offline mode**: works with `localStorage` fallback when backend is unreachable
 
-### Recommended real security
-For actual privacy, deploy behind **server-side authentication** (recommended) or restrict access at the hosting layer (VPN, IP allowlist, private hosting, etc.).
+## Admin account (seeded automatically)
+The default admin account is created on first run:
+- Email: `Thangtan480@gmail.com`
+- Password: `Sliverseven0`
+
+> ⚠️ Change this password after first login.
 
 ## Customize content
-Replace placeholder copy directly inside `private-company-website/index.html`:
-
-- **Hero text** (top section)
-- **Quick facts**: `[Your industry]`, `[City, Country]`
-- **Announcements**: `[Date]`, `[Details]`
-- Sections: **About / Services / Team / Contact**
-
-## Gate UX (built in)
-The unlock gate includes:
-- Clear error messages
-- Lightweight attempt throttling (still not real security)
-- A way to “re-lock” after viewing (logout / re-lock)
-
-## Update contact email
-Edit the mail link in the Contact section:
-
-```html
-<a class="btn primary" href="mailto:hello@company.com">hello@company.com</a>
-```
-
-Replace `hello@company.com` with your internal contact.
+Edit site content through the **Admin Panel → Nội dung (Content)** tab, or edit the default values in `public/js/config.js` / `public/js/admin.js`.
 

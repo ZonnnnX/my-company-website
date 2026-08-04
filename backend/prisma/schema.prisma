@@ -30,6 +30,7 @@ model User {
   groupMessages   GroupChatMessage[]
   invitesCreated  Invite[]           @relation("InviteCreatedBy")
   contacts        ContactMessage[]
+  broadcasts      Broadcast[]        @relation("BroadcastCreatedBy")
 }
 
 model AccessCode {
@@ -187,4 +188,15 @@ model GroupChatMessage {
   createdAt DateTime @default(now())
   group     GroupChat @relation(fields: [groupId], references: [id], onDelete: Cascade)
   sender    User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+}
+
+model Broadcast {
+  id           Int      @id @default(autoincrement())
+  title        String
+  message      String
+  roles        String   @default("[]")
+  createdById  Int?
+  createdByName String  @default("")
+  createdAt    DateTime @default(now())
+  createdBy    User?    @relation("BroadcastCreatedBy", fields: [createdById], references: [id])
 }

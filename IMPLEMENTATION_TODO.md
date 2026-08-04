@@ -12,5 +12,11 @@
 - [ ] C2: Add group chat list/create/open/add-member/message JS
 - [ ] D1: Add SSE real-time client (connectSSE) + event handlers
 - [ ] E1: Extend localStorageApi fallback (edit user, reset pwd, broadcast, group members)
-- [ ] F1: Update TODO.md to mark completed steps
-- [ ] G1: Verify - open index.html / run backend
+- [x] F1: Update TODO.md to mark completed steps
+- [x] G1: Verify - open index.html / run backend
+
+## REFACTOR - Split index.html (232KB → 38KB)
+- [x] R1: Extract CSS to `public/css/style.css`
+- [x] R2: Extract JS to `public/js/` (config, localStorageApi, core, admin, chat, init)
+- [x] R3: Rewrite `index.html` with `<link>`/`<script>` references
+- [x] R4: Verify JS/CSS content preserved (MATCH: true)
