@@ -170,6 +170,53 @@
             throw new Error('User not found.');
         }
 
+var userPutMatch = path.match(/^\/api\/admin\/users\/(\d+)$/);
+        if (userPutMatch && method === 'PUT') {
+            var users = getLocalUsers();
+            var putUserId = parseInt(userPutMatch[1]);
+            var foundPut = false;
+            for (var uiPut = 0; uiPut < users.length; uiPut++) {
+                if (users[uiPut].id === putUserId) {
+                    if (body.name !== undefined) users[uiPut].name = (body.name || '').trim();
+                    if (body.role !== undefined) users[uiPut].role = body.role;
+                    if (body.group !== undefined) users[uiPut].group = body.group;
+                    if (body.status !== undefined) users[uiPut].status = body.status;
+                    if (body.permissions !== undefined) users[uiPut].permissions = body.permissions;
+                    users[uiPut].updatedAt = new Date().toISOString();
+                    foundPut = true;
+                    break;
+                }
+            }
+            if (!foundPut) throw new Error('User not found.');
+            saveLocalUsers(users);
+            var outUser = {
+                id: users[uiPut].id, name: users[uiPut].name, email: users[uiPut].email,
+                role: users[uiPut].role, status: users[uiPut].status, group: users[uiPut].group,
+                permissions: users[uiPut].permissions, createdAt: users[uiPut].createdAt, updatedAt: users[uiPut].updatedAt
+            };
+            return { message: 'User updated successfully.', user: outUser };
+        }
+
+        var userPwdMatch = path.match(/^\/api\/admin\/users\/(\d+)\/password$/);
+        if (userPwdMatch && method === 'POST') {
+            var users = getLocalUsers();
+            var pwdUserId = parseInt(userPwdMatch[1]);
+            var password2 = body.password || '';
+            if (!password2 || password2.length < 6) throw new Error('Password must be at least 6 characters.');
+            var foundPwd = false;
+            for (var uiPwd = 0; uiPwd < users.length; uiPwd++) {
+                if (users[uiPwd].id === pwdUserId) {
+                    users[uiPwd].password = password2;
+                    users[uiPwd].updatedAt = new Date().toISOString();
+                    foundPwd = true;
+                    break;
+                }
+            }
+            if (!foundPwd) throw new Error('User not found.');
+            saveLocalUsers(users);
+            return { message: 'Password reset successfully.' };
+        }
+
         var userDelMatch = path.match(/^\/api\/admin\/users\/(\d+)$/);
         if (userDelMatch && method === 'DELETE') {
             var users = getLocalUsers();
@@ -618,4 +665,4 @@
 
         throw new Error('API endpoint not available offline: ' + method + ' ' + path);
     }
-
+

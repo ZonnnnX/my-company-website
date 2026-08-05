@@ -627,13 +627,34 @@
       localStorage.setItem(LOCAL_TEAM_KEY, JSON.stringify(members));
     }
 
-    // === SITE CONTENT (editable website copy) ===
+// === SITE CONTENT (editable website copy) ===
     var LOCAL_CONTENT_KEY = '_pvt_site_content';
     var LOCAL_GROUP_CHAT_KEY = '_pvt_group_chats';
+    var __siteContentCache = null;
+    var __siteContentLoadedFromServer = false;
+
+    // Deep-merge defaults with loaded content so new fields always exist
+    function mergeContent(base, loaded) {
+      if (!loaded) return base;
+      var out = {};
+      for (var k in base) {
+        out[k] = (loaded[k] === undefined) ? base[k] : loaded[k];
+      }
+      if (!out.hero) out.hero = {};
+      if (!out.quickFacts) out.quickFacts = {};
+      if (!out.about) out.about = {};
+      if (!out.sections) out.sections = {};
+      if (!out.contact) out.contact = {};
+      if (!Array.isArray(out.announcements)) out.announcements = [];
+      if (!Array.isArray(out.services)) out.services = [];
+      if (!Array.isArray(out.about.values)) out.about.values = [];
+      if (!Array.isArray(out.about.overviewPoints)) out.about.overviewPoints = [];
+      return out;
+    }
 
     function getDefaultSiteContent() {
       return {
-        hero: {
+hero: {
           title: 'Trusted solutions for your next milestone.',
           lead: 'A private corporate site with secure navigation, clean layout, and quick content sections.',
           feature1Title: 'Secure by design',
@@ -641,7 +662,9 @@
           feature2Title: 'Modern UI',
           feature2Desc: 'Responsive layout, accessible components, and a polished dark theme.',
           feature3Title: 'Easy to customize',
-          feature3Desc: 'Update copy, images, and links without touching the structure.'
+          feature3Desc: 'Update copy, images, and links without touching the structure.',
+          buttonServices: 'Explore services',
+          buttonContact: 'Get in touch'
         },
         quickFacts: {
           industry: '[Your industry]',
@@ -661,7 +684,19 @@
             'Collaboration — We succeed together',
             'Customer-first — Our clients are our priority'
           ],
-          overview: 'Founded with a vision to transform the [your industry] landscape, we have grown into a trusted partner for organizations worldwide. Our team brings decades of combined experience across strategy, technology, and operations.'
+overview: 'Founded with a vision to transform the [your industry] landscape, we have grown into a trusted partner for organizations worldwide. Our team brings decades of combined experience across strategy, technology, and operations.',
+          overviewPoints: [
+            'Operational excellence driven by data',
+            'Long-term partnerships with measurable impact',
+            'Commitment to sustainable growth'
+          ]
+        },
+        sections: {
+          about: { heading: 'About Us', subheading: 'Our mission, values, and story' },
+          services: { heading: 'Our Services', subheading: 'Comprehensive solutions tailored to your needs' },
+          team: { heading: 'Company', subheading: 'Our team & organizational structure' },
+          contact: { heading: 'Contact Us', subheading: 'We\'d love to hear from you' },
+          reports: { heading: '📊 Báo Cáo Tài Khoản', subheading: 'Quản lý báo cáo số lượng DIE của các tài khoản' }
         },
         services: [
           { title: '📈 Consulting', desc: 'Strategic planning, market analysis, and business transformation guidance. We help you identify opportunities, mitigate risks, and chart a clear path forward with data-driven recommendations.' },
@@ -680,18 +715,40 @@
       };
     }
 
+// Backend-FIRST content loader. Returns cached content immediately and
+    // asynchronously replaces it with server data when available.
     function getSiteContent() {
-      var stored = localStorage.getItem(LOCAL_CONTENT_KEY);
-      if (stored) {
-        try { return JSON.parse(stored); } catch(e) {}
-      }
+      if (__siteContentCache) return __siteContentCache;
       var defaults = getDefaultSiteContent();
-      localStorage.setItem(LOCAL_CONTENT_KEY, JSON.stringify(defaults));
-      return defaults;
+      __siteContentCache = mergeContent(defaults, null);
+      // Fire-and-forget: fetch from server to enable cross-user sync
+      if (!__siteContentLoadedFromServer) {
+        __siteContentLoadedFromServer = true;
+        try {
+          api('/api/site-content').then(function(serverContent) {
+            if (serverContent && typeof serverContent === 'object') {
+              var updated = mergeContent(getDefaultSiteContent(), serverContent);
+              __siteContentCache = updated;
+              try { localStorage.setItem(LOCAL_CONTENT_KEY, JSON.stringify(updated)); } catch(e) {}
+              applySiteContentToUI(updated);
+            }
+          }).catch(function() {
+            try {
+              var stored = localStorage.getItem(LOCAL_CONTENT_KEY);
+              if (stored) {
+                var parsed = JSON.parse(stored);
+                __siteContentCache = mergeContent(getDefaultSiteContent(), parsed);
+              }
+            } catch(e) {}
+          });
+        } catch(e) {}
+      }
+      return __siteContentCache;
     }
 
-function saveSiteContent(content) {
-      localStorage.setItem(LOCAL_CONTENT_KEY, JSON.stringify(content));
+    function saveSiteContent(content) {
+      __siteContentCache = content;
+      try { localStorage.setItem(LOCAL_CONTENT_KEY, JSON.stringify(content)); } catch(e) {}
     }
 
     // === Toast Notifications (Facebook-style) ===
@@ -1107,4 +1164,4 @@ function saveSiteContent(content) {
     function saveLocalGroupChats(groups) {
       localStorage.setItem(LOCAL_GROUP_CHAT_KEY, JSON.stringify(groups));
     }
-
+

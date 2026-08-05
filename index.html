@@ -377,9 +377,9 @@
         <div class="hero-card">
           <h1 id="home-hero-title">Trusted solutions for your next milestone.</h1>
           <p class="lead" id="home-hero-lead">A private corporate site with secure navigation, clean layout, and quick content sections.</p>
-          <div class="buttons">
-            <a class="btn primary" href="#services"><span class="dot"></span>Explore services</a>
-            <a class="btn" href="#contact">Get in touch</a>
+<div class="buttons">
+            <a class="btn primary" href="#services" id="home-hero-btn-services"><span class="dot"></span>Explore services</a>
+            <a class="btn" href="#contact" id="home-hero-btn-contact">Get in touch</a>
           </div>
           <div class="grid" style="margin-top:18px" id="home-features-grid">
             <div class="feature"><h3 id="home-feature1-title">Secure by design</h3><p id="home-feature1-desc">Server-side authentication with role-based access control.</p></div>
@@ -413,8 +413,8 @@
     </div>
 
     <!-- ===== ABOUT PAGE ===== -->
-    <div class="page-view" id="page-about" style="display:none">
-      <div class="section-title"><h2>About Us</h2><span>Our mission, values, and story</span></div>
+<div class="page-view" id="page-about" style="display:none">
+      <div class="section-title"><h2 id="section-heading-about">About Us</h2><span id="section-subheading-about">Our mission, values, and story</span></div>
       <div style="margin-top:18px">
         <div class="card" style="margin-bottom:16px">
           <h3 style="margin:0 0 10px">Our Mission</h3>
@@ -431,10 +431,10 @@
               <li><strong>Customer-first</strong> — Our clients are our priority</li>
             </ul>
           </div>
-          <div class="card">
+<div class="card">
             <h3 style="margin:0 0 8px;font-size:15px">&#128200; Company Overview</h3>
-            <p style="margin:0;color:var(--muted)">Founded with a vision to transform the [your industry] landscape, we have grown into a trusted partner for organizations worldwide. Our team brings decades of combined experience across strategy, technology, and operations.</p>
-            <ul class="list" style="margin-top:10px">
+            <p style="margin:0;color:var(--muted)" id="about-overview-text">Founded with a vision to transform the [your industry] landscape, we have grown into a trusted partner for organizations worldwide. Our team brings decades of combined experience across strategy, technology, and operations.</p>
+            <ul class="list" style="margin-top:10px" id="about-overview-points">
               <li>Operational excellence driven by data</li>
               <li>Long-term partnerships with measurable impact</li>
               <li>Commitment to sustainable growth</li>
@@ -445,8 +445,8 @@
     </div>
 
     <!-- ===== SERVICES PAGE ===== -->
-    <div class="page-view" id="page-services" style="display:none">
-      <div class="section-title"><h2>Our Services</h2><span>Comprehensive solutions tailored to your needs</span></div>
+<div class="page-view" id="page-services" style="display:none">
+      <div class="section-title"><h2 id="section-heading-services">Our Services</h2><span id="section-subheading-services">Comprehensive solutions tailored to your needs</span></div>
       <div class="grid" style="margin-top:18px">
         <div class="feature">
           <h3>&#128200; Consulting</h3>
@@ -478,8 +478,8 @@
 
 <div class="page-view" id="page-team" style="display:none">
       <div class="section-title">
-        <h2>Company</h2>
-        <span>Our team &amp; organizational structure</span>
+        <h2 id="section-heading-team">Company</h2>
+        <span id="section-subheading-team">Our team &amp; organizational structure</span>
       </div>
       <div id="team-toolbar" style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px">
         <button class="btn primary" id="team-manage-btn" onclick="openTeamManager()" style="display:none;font-size:13px;padding:8px 14px">&#9881; Quản lý Team</button>
@@ -492,8 +492,8 @@
     </div>
 
     <!-- ===== CONTACT PAGE ===== -->
-    <div class="page-view" id="page-contact" style="display:none">
-      <div class="section-title"><h2>Contact Us</h2><span>We'd love to hear from you</span></div>
+<div class="page-view" id="page-contact" style="display:none">
+      <div class="section-title"><h2 id="section-heading-contact">Contact Us</h2><span id="section-subheading-contact">We'd love to hear from you</span></div>
       <div class="two-col" style="margin-top:18px">
         <div class="card">
           <h3 style="margin:0 0 12px;font-size:16px">&#128231; Send us a message</h3>
@@ -528,10 +528,10 @@
     </div>
 
     <!-- ===== REPORTS PAGE (Báo Cáo Tài Khoản) ===== -->
-    <div class="page-view" id="page-reports" style="display:none">
+<div class="page-view" id="page-reports" style="display:none">
       <div class="section-title">
-        <h2>&#128202; Báo Cáo Tài Khoản</h2>
-        <span>Quản lý báo cáo số lượng DIE của các tài khoản</span>
+        <h2 id="section-heading-reports">&#128202; Báo Cáo Tài Khoản</h2>
+        <span id="section-subheading-reports">Quản lý báo cáo số lượng DIE của các tài khoản</span>
       </div>
       <div style="margin-top:18px">
         <div id="reports-toolbar" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px">

@@ -322,13 +322,16 @@ html += '<td><select class="admin-select" onchange="handleRoleChange(' + u.id + 
           html += '</select></td>';
           html += '<td>' + groupName + '</td>';
           html += '<td class="' + statusClass + '">' + u.status + '</td>';
-          html += '<td class="admin-actions">';
+html += '<td class="admin-actions">';
           if (u.status === 'PENDING') {
             html += '<button class="btn success" onclick="handleAdminAction(' + u.id + ',\'APPROVED\')" style="padding:6px 12px;font-size:12px">Approve</button>';
             html += '<button class="btn danger" onclick="handleAdminAction(' + u.id + ',\'REJECTED\')" style="padding:6px 12px;font-size:12px">Reject</button>';
           } else {
             html += '<span style="color:var(--muted);font-size:12px">—</span>';
           }
+          html += '<button class="btn" onclick="openEditUserModal(' + u.id + ')" style="padding:6px 10px;font-size:12px" title="Sửa tài khoản">&#9998;</button>';
+          html += '<button class="btn" onclick="openResetPasswordModal(' + u.id + ')" style="padding:6px 10px;font-size:12px" title="Đặt lại mật khẩu">&#128274;</button>';
+          html += '<button class="btn danger" onclick="deleteUser(' + u.id + ')" style="padding:6px 10px;font-size:12px" title="Xóa tài khoản">&#10005;</button>';
           html += '</td>';
           html += '</tr>';
         }
@@ -623,7 +626,7 @@ if (tab === 'content') loadSiteContentFromAdmin();
       }
     }
 
-    function copyInviteLink(link) {
+function copyInviteLink(link) {
       var ta = document.createElement('textarea');
       ta.value = link;
       ta.style.position = 'fixed';
@@ -640,4 +643,200 @@ if (tab === 'content') loadSiteContentFromAdmin();
         resultEl.appendChild(notice);
       }
     }
-
+
+    // === Admin: Edit User Modal ===
+    var editingUserId = null;
+
+    // Inject the edit-user + reset-password modal HTML
+    (function() {
+      var div = document.createElement('div');
+      div.innerHTML = `
+      <div class="doc-manager-overlay" id="edit-user-overlay">
+        <div class="doc-manager-modal">
+          <button class="close-btn" onclick="closeEditUserModal()">&times;</button>
+          <h3>&#9998; Sửa Tài Khoản</h3>
+          <div class="doc-manager-form">
+            <div class="full">
+              <label>Họ và tên</label>
+              <input id="edituser-name" type="text" />
+            </div>
+            <div class="full">
+              <label>Email</label>
+              <input id="edituser-email" type="email" />
+            </div>
+            <div>
+              <label>Vai trò (Role)</label>
+              <select id="edituser-role"></select>
+            </div>
+            <div>
+              <label>Nhóm (Group)</label>
+              <select id="edituser-group">
+                <option value="General">General</option>
+                <option value="GROUP1">Thực thi nhóm 1 (GROUP1)</option>
+                <option value="GROUP2">Thực thi nhóm 2 (GROUP2)</option>
+                <option value="GROUP3">Thực thi nhóm 3 (GROUP3)</option>
+                <option value="FUND1">Quỹ chứng 1 (FUND1)</option>
+              </select>
+            </div>
+            <div>
+              <label>Trạng thái</label>
+              <select id="edituser-status">
+                <option value="APPROVED">APPROVED</option>
+                <option value="PENDING">PENDING</option>
+                <option value="REJECTED">REJECTED</option>
+              </select>
+            </div>
+            <div class="form-actions">
+              <span class="form-msg" id="edituser-msg"></span>
+              <button class="btn primary" onclick="saveUserEdit()">&#10003; Lưu</button>
+              <button class="btn" onclick="closeEditUserModal()" style="padding:8px 20px">Đóng</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="doc-manager-overlay" id="reset-password-overlay">
+        <div class="doc-manager-modal">
+          <button class="close-btn" onclick="closeResetPasswordModal()">&times;</button>
+          <h3>&#128274; Đặt Lại Mật Khẩu</h3>
+          <div class="doc-manager-form">
+            <div class="full">
+              <label>Mật khẩu mới (tối thiểu 6 ký tự)</label>
+              <input id="resetpwd-password" type="password" placeholder="Mật khẩu mới" />
+            </div>
+            <div class="form-actions">
+              <span class="form-msg" id="resetpwd-msg"></span>
+              <button class="btn primary" onclick="resetUserPassword()">&#10003; Đặt lại</button>
+              <button class="btn" onclick="closeResetPasswordModal()" style="padding:8px 20px">Đóng</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+      while (div.firstElementChild) {
+        document.body.appendChild(div.firstElementChild);
+      }
+    })();
+
+    function openEditUserModal(userId) {
+      editingUserId = userId;
+      api('/api/admin/users').then(function(users) {
+        var u = null;
+        for (var i = 0; i < users.length; i++) { if (users[i].id === userId) { u = users[i]; break; } }
+        if (!u) return;
+        document.getElementById('edituser-name').value = u.name || '';
+        document.getElementById('edituser-email').value = u.email || '';
+        document.getElementById('edituser-group').value = u.group || 'General';
+        document.getElementById('edituser-status').value = u.status || 'APPROVED';
+        var roleSel = document.getElementById('edituser-role');
+        var allRoles = getAllRoles();
+        var html = '';
+        for (var r = 0; r < allRoles.length; r++) {
+          var rv = allRoles[r];
+          if (typeof rv === 'object' && rv.name) rv = rv.name;
+          var label = isGroupRole(rv) ? (getGroupRoleName(rv) + ' (' + rv + ')') : rv;
+          html += '<option value="' + rv + '"' + (u.role === rv ? ' selected' : '') + '>' + label + '</option>';
+        }
+        roleSel.innerHTML = html;
+        var msg = document.getElementById('edituser-msg');
+        if (msg) { msg.textContent = ''; msg.style.color = ''; }
+        document.getElementById('edit-user-overlay').classList.add('active');
+      }).catch(function() {
+        // Offline fallback
+        var users = getLocalUsers();
+        var u = null;
+        for (var i = 0; i < users.length; i++) { if (users[i].id === userId) { u = users[i]; break; } }
+        if (!u) return;
+        document.getElementById('edituser-name').value = u.name || '';
+        document.getElementById('edituser-email').value = u.email || '';
+        document.getElementById('edituser-group').value = u.group || 'General';
+        document.getElementById('edituser-status').value = u.status || 'APPROVED';
+        var roleSel = document.getElementById('edituser-role');
+        var allRoles = getAllRoles();
+        var html = '';
+        for (var r = 0; r < allRoles.length; r++) {
+          var rv = allRoles[r];
+          if (typeof rv === 'object' && rv.name) rv = rv.name;
+          var label = isGroupRole(rv) ? (getGroupRoleName(rv) + ' (' + rv + ')') : rv;
+          html += '<option value="' + rv + '"' + (u.role === rv ? ' selected' : '') + '>' + label + '</option>';
+        }
+        roleSel.innerHTML = html;
+        var msg = document.getElementById('edituser-msg');
+        if (msg) { msg.textContent = ''; msg.style.color = ''; }
+        document.getElementById('edit-user-overlay').classList.add('active');
+      });
+    }
+
+    function closeEditUserModal() {
+      var overlay = document.getElementById('edit-user-overlay');
+      if (overlay) overlay.classList.remove('active');
+    }
+
+    async function saveUserEdit() {
+      var msg = document.getElementById('edituser-msg');
+      if (!msg || editingUserId === null) return;
+      var name = document.getElementById('edituser-name').value.trim();
+      var email = document.getElementById('edituser-email').value.trim();
+      var role = document.getElementById('edituser-role').value;
+      var group = document.getElementById('edituser-group').value;
+      var status = document.getElementById('edituser-status').value;
+msg.textContent = ''; msg.style.color = '';
+      if (!name || !email) { msg.textContent = 'Vui lòng nhập tên và email.'; msg.style.color = 'var(--danger)'; return; }
+      try {
+        // Backend PUT accepts name, role, group, status. Email is not mutable via PUT.
+        await api('/api/admin/users/' + editingUserId, { method: 'PUT', body: JSON.stringify({ name: name, role: role, group: group, status: status }) });
+        msg.textContent = 'Đã cập nhật tài khoản!'; msg.style.color = 'var(--accent2)';
+        setTimeout(closeEditUserModal, 1000);
+        loadAdminUsers();
+      } catch (e) {
+        // Fallback: use individual PATCH endpoints
+        try {
+          await api('/api/admin/users/' + editingUserId + '/role', { method: 'PATCH', body: JSON.stringify({ role: role }) });
+          await api('/api/admin/users/' + editingUserId + '/group', { method: 'PATCH', body: JSON.stringify({ group: group }) });
+          await api('/api/admin/users/' + editingUserId + '/status', { method: 'PATCH', body: JSON.stringify({ status: status }) });
+          msg.textContent = 'Đã cập nhật tài khoản (offline)!'; msg.style.color = 'var(--accent2)';
+          setTimeout(closeEditUserModal, 1000);
+          loadAdminUsers();
+        } catch (e2) {
+          msg.textContent = 'Lỗi: ' + e2.message; msg.style.color = 'var(--danger)';
+        }
+      }
+    }
+
+    function openResetPasswordModal(userId) {
+      editingUserId = userId;
+      document.getElementById('resetpwd-password').value = '';
+      var msg = document.getElementById('resetpwd-msg');
+      if (msg) { msg.textContent = ''; msg.style.color = ''; }
+      document.getElementById('reset-password-overlay').classList.add('active');
+    }
+
+    function closeResetPasswordModal() {
+      var overlay = document.getElementById('reset-password-overlay');
+      if (overlay) overlay.classList.remove('active');
+    }
+
+    async function resetUserPassword() {
+      var msg = document.getElementById('resetpwd-msg');
+      if (!msg || editingUserId === null) return;
+      var password = document.getElementById('resetpwd-password').value;
+      msg.textContent = ''; msg.style.color = '';
+      if (!password || password.length < 6) { msg.textContent = 'Mật khẩu phải có ít nhất 6 ký tự.'; msg.style.color = 'var(--danger)'; return; }
+      try {
+await api('/api/admin/users/' + editingUserId + '/password', { method: 'POST', body: JSON.stringify({ password: password }) });
+        msg.textContent = 'Đã đặt lại mật khẩu!'; msg.style.color = 'var(--accent2)';
+        setTimeout(closeResetPasswordModal, 1000);
+      } catch (e) {
+        msg.textContent = 'Lỗi: ' + e.message; msg.style.color = 'var(--danger)';
+      }
+    }
+
+    async function deleteUser(userId) {
+      if (!confirm('Xóa tài khoản này? Hành động này không thể hoàn tác.')) return;
+      try {
+        await api('/api/admin/users/' + userId, { method: 'DELETE' });
+        showToast('success', 'Đã xóa', 'Tài khoản đã được xóa.');
+        loadAdminUsers();
+      } catch (e) {
+        alert('Lỗi: ' + e.message);
+      }
+    }
+
